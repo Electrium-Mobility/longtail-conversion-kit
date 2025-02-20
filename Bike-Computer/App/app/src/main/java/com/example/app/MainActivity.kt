@@ -1,6 +1,8 @@
 package com.example.app
 
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,6 +35,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Request notification access if not granted
+        if (!isNotificationServiceEnabled()) {
+            startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+        }
+        
         setContent {
             val navController = rememberNavController()
             NavHost(navController = navController, startDestination = "HomeScreen", builder = {
@@ -42,5 +50,11 @@ class MainActivity : ComponentActivity() {
                 composable(route = "DeviceListScreen", content = { DeviceListScreen(navController = navController) })
             })
         }
+    }
+
+    private fun isNotificationServiceEnabled(): Boolean {
+        val pkgName = packageName
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        return flat != null && flat.contains(pkgName)
     }
 }
