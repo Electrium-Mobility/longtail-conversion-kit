@@ -1,27 +1,13 @@
 package com.example.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -35,7 +21,12 @@ fun DisplayNotificationsScreen(
     navController: NavController
 ) {
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
-        Column(modifier = modifier.padding(innerPadding)) {
+        Column(
+            modifier = modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Header(navController)
             DirectionsDisplay()
         }
@@ -46,12 +37,23 @@ fun DisplayNotificationsScreen(
 private fun DirectionsDisplay() {
     val directions by MapNotificationService.latestDirections.collectAsState()
     
-    Box(
+    Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(16.dp),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
+        // Large Arrow
+        Text(
+            text = getDirectionArrow(directions),
+            fontSize = 120.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        
+        // Direction Text
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
@@ -59,23 +61,29 @@ private fun DirectionsDisplay() {
                 containerColor = MaterialTheme.colorScheme.surface
             )
         ) {
-            Column(
+            Text(
+                text = directions ?: "No active navigation",
                 modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Current Direction",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = directions ?: "No active navigation",
-                    modifier = Modifier.padding(top = 8.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
-            }
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
         }
+    }
+}
+
+private fun getDirectionArrow(direction: String?): String {
+    if (direction == null) return "⚡" // Default when no direction
+    
+    return when {
+        direction.contains("right", ignoreCase = true) -> "➡"
+        direction.contains("left", ignoreCase = true) -> "⬅"
+        direction.contains("straight", ignoreCase = true) || 
+        direction.contains("continue", ignoreCase = true) -> "⬆"
+        direction.contains("u-turn", ignoreCase = true) || 
+        direction.contains("turn around", ignoreCase = true) -> "⬇"
+        direction.contains("merge", ignoreCase = true) -> "↗"
+        direction.contains("exit", ignoreCase = true) -> "↘"
+        else -> "⚡" // Default for unknown directions
     }
 }
 
