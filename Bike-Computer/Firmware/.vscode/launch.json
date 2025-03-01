@@ -12,9 +12,9 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/.pio/build/upesy_wroom/firmware.elf",
-            "projectEnvName": "upesy_wroom",
-            "toolchainBinDir": "/Users/owner/.platformio/packages/toolchain-xtensa-esp32/bin",
+            "executable": "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/.pio/build/esp32s3box/firmware.elf",
+            "projectEnvName": "esp32s3box",
+            "toolchainBinDir": "/Users/owner/.platformio/packages/toolchain-xtensa-esp-elf/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
@@ -25,18 +25,18 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/.pio/build/upesy_wroom/firmware.elf",
-            "projectEnvName": "upesy_wroom",
-            "toolchainBinDir": "/Users/owner/.platformio/packages/toolchain-xtensa-esp32/bin",
+            "executable": "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/.pio/build/esp32s3box/firmware.elf",
+            "projectEnvName": "esp32s3box",
+            "toolchainBinDir": "/Users/owner/.platformio/packages/toolchain-xtensa-esp-elf/bin",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/.pio/build/upesy_wroom/firmware.elf",
-            "projectEnvName": "upesy_wroom",
-            "toolchainBinDir": "/Users/owner/.platformio/packages/toolchain-xtensa-esp32/bin",
+            "executable": "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/.pio/build/esp32s3box/firmware.elf",
+            "projectEnvName": "esp32s3box",
+            "toolchainBinDir": "/Users/owner/.platformio/packages/toolchain-xtensa-esp-elf/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"
         }
