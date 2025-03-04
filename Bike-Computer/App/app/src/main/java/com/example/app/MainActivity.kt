@@ -1,8 +1,10 @@
 package com.example.app
 
+import android.content.ComponentName
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -53,8 +55,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun isNotificationServiceEnabled(): Boolean {
-        val pkgName = packageName
-        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
-        return flat != null && flat.contains(pkgName)
+        val componentName = ComponentName(this, NotificationListenerService::class.java)
+        val flat = Settings.Secure.getString(
+            contentResolver,
+            "enabled_notification_listeners"
+        )
+        return flat?.contains(componentName.flattenToString()) == true
     }
 }

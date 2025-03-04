@@ -32,17 +32,14 @@ class MapNotificationService : NotificationListenerService() {
         Log.d(TAG, "Notification posted: ${sbn.notification.tickerText}")
         if (sbn.packageName == MAPS_PACKAGE) {
             val notification = sbn.notification
-            val title = notification.extras.getString("android.title") ?: return
-            val text = notification.extras.getString("android.text") ?: return
+            val title = notification.extras.getCharSequence("android.title").toString() ?: return
+            val text = notification.extras.getCharSequence("android.text").toString() ?: return
 
             Log.d(TAG, "Notification title: $title")
             Log.d(TAG, "Notification text: $text")
             Log.d(TAG, "Notification Package: ${sbn.packageName}")
 
-            // Only process navigation notifications
-            if (title.contains("Navigation") || text.contains("Turn") || text.contains("Continue")) {
-                _latestDirections.value = text
-            }
+            _latestDirections.value = "$title $text"
         }
     }
 
