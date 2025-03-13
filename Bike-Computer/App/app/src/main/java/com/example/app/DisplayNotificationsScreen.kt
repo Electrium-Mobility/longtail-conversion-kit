@@ -1,5 +1,7 @@
 package com.example.app
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -7,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -24,7 +27,8 @@ fun DisplayNotificationsScreen(
         Column(
             modifier = modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .background(Color.Red),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Header(navController)
@@ -36,6 +40,7 @@ fun DisplayNotificationsScreen(
 @Composable
 private fun DirectionsDisplay() {
     val directions by MapNotificationService.latestDirections.collectAsState()
+    val directionIcon by MapNotificationService.latestArrows.collectAsState()
     
     Column(
         modifier = Modifier
@@ -45,13 +50,12 @@ private fun DirectionsDisplay() {
         verticalArrangement = Arrangement.Center
     ) {
         // Large Arrow
-        Text(
-            text = getDirectionArrow(directions),
-            fontSize = 120.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
+        directionIcon?.let {
+            Image (
+                bitmap = it.asImageBitmap(),
+                contentDescription = "Direction Arrow",
+            )
+        }
         
         // Direction Text
         Card(
@@ -68,22 +72,6 @@ private fun DirectionsDisplay() {
                 textAlign = TextAlign.Center
             )
         }
-    }
-}
-
-private fun getDirectionArrow(direction: String?): String {
-    if (direction == null) return "⚡" // Default when no direction
-    
-    return when {
-        direction.contains("right", ignoreCase = true) -> "➡"
-        direction.contains("left", ignoreCase = true) -> "⬅"
-        direction.contains("straight", ignoreCase = true) || 
-        direction.contains("continue", ignoreCase = true) -> "⬆"
-        direction.contains("u-turn", ignoreCase = true) || 
-        direction.contains("turn around", ignoreCase = true) -> "⬇"
-        direction.contains("merge", ignoreCase = true) -> "↗"
-        direction.contains("exit", ignoreCase = true) -> "↘"
-        else -> "⚡" // Default for unknown directions
     }
 }
 

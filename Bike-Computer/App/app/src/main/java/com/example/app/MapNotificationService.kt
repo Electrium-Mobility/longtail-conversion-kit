@@ -4,10 +4,12 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.IBinder
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +20,10 @@ class MapNotificationService : NotificationListenerService() {
         private const val TAG = "NotificationService"
         private const val MAPS_PACKAGE = "com.google.android.apps.maps"
         private val _latestDirections = MutableStateFlow<String?>(null)
+        private val _latestArrows = MutableStateFlow<Bitmap?>(null)
         val latestDirections: StateFlow<String?> = _latestDirections.asStateFlow()
+        val latestArrows: StateFlow<Bitmap?> = _latestArrows.asStateFlow()
+
     }
 
 
@@ -34,12 +39,14 @@ class MapNotificationService : NotificationListenerService() {
             val notification = sbn.notification
             val title = notification.extras.getCharSequence("android.title").toString() ?: return
             val text = notification.extras.getCharSequence("android.text").toString() ?: return
-
+            val eta = notification.extras.getCharSequence("android.subText").toString() ?: return
+            val icon = notification.getLargeIcon().loadDrawable(this)?.toBitmap()
             Log.d(TAG, "Notification title: $title")
             Log.d(TAG, "Notification text: $text")
             Log.d(TAG, "Notification Package: ${sbn.packageName}")
 
-            _latestDirections.value = "$title $text"
+            _latestArrows.value = icon
+            _latestDirections.value = "$title $text $eta"
         }
     }
 
