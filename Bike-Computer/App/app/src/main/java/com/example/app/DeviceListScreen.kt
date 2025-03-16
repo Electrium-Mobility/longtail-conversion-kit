@@ -1,7 +1,7 @@
 package com.example.app
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,35 +10,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import android.bluetooth.BluetoothDevice
+import androidx.compose.material3.Button
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
 
+@SuppressLint("MissingPermission")
 @Composable
-fun DeviceListScreen(
-    modifier: Modifier = Modifier,
-    navController: NavController
-) {
-    val devices = listOf(
-        "JBL Speaker" to true,
-        "iPhone 3" to false,
-        "Someone's Laptop" to true,
-        "AirPods" to false
-    )
+fun DeviceListScreen(navController: NavController) {
+    val bleScanner = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<BLEScanner>("bleScanner")
+
+    var scannedDevices by remember { mutableStateOf(emptyList<BluetoothDevice>()) }
+
+    LaunchedEffect(Unit) {
+        bleScanner?.startScan()
+        scannedDevices = bleScanner?.getScanResults() ?: emptyList()
+    }
 
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
-        Column(modifier = modifier.padding(innerPadding)) {
-            Header(navController)
+        Column(modifier = Modifier.padding(innerPadding)) {
             Column(
-            modifier = Modifier
-            .fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
-    ) {
-                devices.forEach { (deviceName, isConnected) ->
-                    DeviceItem(deviceName = deviceName, isConnected = isConnected)
+            ) {
+                scannedDevices.forEach { device ->
+                    DeviceItem(deviceName = device.name ?: "Unknown Device", isConnected = false)
                 }
             }
         }
@@ -81,13 +85,9 @@ private fun Header(navController: NavController) {
 @Composable
 fun DeviceItem(deviceName: String, isConnected: Boolean) {
     Button(
-        onClick = { }, // configure when BLE is set up
-        elevation = ButtonDefaults.buttonElevation(pressedElevation = 3.dp),
-        shape = RectangleShape,
-        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+        onClick = {},
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.Black)
             .height(60.dp)
     ) {
         Row(
@@ -97,14 +97,10 @@ fun DeviceItem(deviceName: String, isConnected: Boolean) {
         ) {
             Text(
                 text = deviceName,
-                color = Color.Black,
-                textAlign = TextAlign.Left,
-                fontSize = 20.sp,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                fontSize = 20.sp
             )
             Text(
                 text = if (isConnected) "Connected" else "Disconnected",
-                color = if (isConnected) Color(red = 50, green = 200, blue = 50) else Color.Red,
                 fontSize = 16.sp
             )
         }
