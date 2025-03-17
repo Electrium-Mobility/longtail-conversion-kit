@@ -27,6 +27,9 @@ extern "C" {
 
 void init_display();
 
+void displayLargeTextMeasurement(const char* title, uint16_t value, bool isSpeed, int16_t startX, int16_t startY);
+void displaySmallTextMeasurement(const char* title, uint16_t value, bool isSpeed, int16_t startX, int16_t startY);
+
 #ifdef __cplusplus
 }
 #endif
