@@ -11,9 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 
 @Composable
@@ -50,7 +52,7 @@ private fun Header(navController: NavController) {
     Box(modifier = Modifier
         .fillMaxWidth()
         .height(60.dp)
-        .background(Color(red = 50, green = 200, blue = 50))) {
+        .background(color = Color(ContextCompat.getColor(LocalContext.current, R.color.green_main)))) {
         Row(modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(), 

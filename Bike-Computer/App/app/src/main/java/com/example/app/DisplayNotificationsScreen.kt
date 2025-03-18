@@ -27,10 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColor
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -66,7 +68,7 @@ private fun DirectionsDisplay() {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 50.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(red = 0x34, green = 0xA8, blue = 0x53),
+            containerColor = Color(ContextCompat.getColor(LocalContext.current, R.color.green_main)),
             contentColor = Color.White
         )
 
@@ -136,7 +138,7 @@ private fun Header(navController: NavController) {
     Box(modifier = Modifier
         .fillMaxWidth()
         .height(60.dp)
-        .background(Color(red = 50, green = 200, blue = 50))) {
+        .background(color = Color(ContextCompat.getColor(LocalContext.current, R.color.green_main)))) {
         Row(modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
