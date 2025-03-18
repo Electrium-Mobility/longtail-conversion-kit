@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColor
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
@@ -43,8 +44,7 @@ fun DisplayNotificationsScreen(
         Column(
             modifier = modifier
                 .padding(innerPadding)
-                .fillMaxSize()
-                .background(Color.Red),
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Header(navController)
@@ -55,36 +55,75 @@ fun DisplayNotificationsScreen(
 
 @Composable
 private fun DirectionsDisplay() {
-    val directions by MapNotificationService.latestDirections.collectAsState()
-    val directionIcon by MapNotificationService.latestArrows.collectAsState()
-    
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    val directionDistance by MapNotificationService.directionDistance.collectAsState()
+    val directionText by MapNotificationService.directionText.collectAsState()
+    val directionIcon by MapNotificationService.directionIcon.collectAsState()
+    val etaInDuration by MapNotificationService.etaInDuration.collectAsState()
+    val etaInDistance by MapNotificationService.etaInDistance.collectAsState()
+    val etaInTime by MapNotificationService.etaInTime.collectAsState()
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 50.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(red = 0x34, green = 0xA8, blue = 0x53),
+            contentColor = Color.White
+        )
+
     ) {
+
+        // Direction Text
+        Text(
+            text = directionText?: "No active navigation",
+            modifier = Modifier.padding(8.dp).align(Alignment.CenterHorizontally),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center
+        )
+
         // Large Arrow
         directionIcon?.let {
-            Image (
+            Image(
+                modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally).size(100.dp),
                 bitmap = it.asImageBitmap(),
-                modifier = Modifier.size(200.dp),
                 contentDescription = "Direction Arrow",
             )
         }
-        
-        // Direction Text
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
-        ) {
+
+        // Direction Distance
+        directionDistance?.let {
             Text(
-                text = directions ?: "No active navigation",
-                modifier = Modifier.padding(16.dp),
+                text = it,
+                modifier = Modifier.padding(8.dp).align(Alignment.CenterHorizontally),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // ETA in Duration
+        etaInDuration?.let{
+            Text(
+                text = it,
+                modifier = Modifier.padding(start = 12.dp, top = 5.dp, bottom = 5.dp),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // ETA in Distance
+        etaInDistance?.let {
+            Text(
+                text = it,
+                modifier = Modifier.padding(start = 12.dp, top = 5.dp, bottom = 5.dp),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        // ETA in Time
+        etaInTime?.let{
+            Text(
+                text = it,
+                modifier = Modifier.padding(start = 12.dp, top = 5.dp, bottom = 12.dp),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center
             )

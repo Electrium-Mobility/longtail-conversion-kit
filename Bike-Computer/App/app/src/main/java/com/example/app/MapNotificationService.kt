@@ -19,11 +19,20 @@ class MapNotificationService : NotificationListenerService() {
     companion object {
         private const val TAG = "NotificationService"
         private const val MAPS_PACKAGE = "com.google.android.apps.maps"
-        private val _latestDirections = MutableStateFlow<String?>(null)
-        private val _latestArrows = MutableStateFlow<Bitmap?>(null)
-        val latestDirections: StateFlow<String?> = _latestDirections.asStateFlow()
-        val latestArrows: StateFlow<Bitmap?> = _latestArrows.asStateFlow()
 
+        private val _directionDistance = MutableStateFlow<String?>(null)
+        private val _directionText = MutableStateFlow<String?>(null)
+        private val _directionIcon = MutableStateFlow<Bitmap?>(null)
+        private val _etaInDuration = MutableStateFlow<String?>(null)
+        private val _etaInDistance = MutableStateFlow<String?>(null)
+        private val _etaInTime = MutableStateFlow<String?>(null)
+
+        val directionDistance: StateFlow<String?> = _directionDistance.asStateFlow()
+        val directionText: StateFlow<String?> = _directionText.asStateFlow()
+        val directionIcon: StateFlow<Bitmap?> = _directionIcon.asStateFlow()
+        val etaInDuration: StateFlow<String?> = _etaInDuration.asStateFlow()
+        val etaInDistance: StateFlow<String?> = _etaInDistance.asStateFlow()
+        val etaInTime: StateFlow<String?> = _etaInTime.asStateFlow()
     }
 
 
@@ -37,29 +46,15 @@ class MapNotificationService : NotificationListenerService() {
         Log.d(TAG, "Notification posted: ${sbn.notification.tickerText}")
         if (sbn.packageName == MAPS_PACKAGE) {
             val notification = sbn.notification
-            val title = notification.extras.getCharSequence("android.title").toString() ?: return
-            val text = notification.extras.getCharSequence("android.text").toString() ?: return
-            val eta = notification.extras.getCharSequence("android.subText").toString() ?: return
-            val icon = notification.getLargeIcon().loadDrawable(this)?.toBitmap()
-            Log.d(TAG, "Notification title: $title")
-            Log.d(TAG, "Notification text: $text")
-            Log.d(TAG, "Notification Package: ${sbn.packageName}")
+            _directionDistance.value = notification.extras.getCharSequence("android.title").toString()
+            _directionText.value = notification.extras.getCharSequence("android.text").toString()
+            _directionIcon.value = notification.getLargeIcon().loadDrawable(this)?.toBitmap()
 
-            _latestArrows.value = icon
-            _latestDirections.value = "$title $text $eta"
+            val etaInfo = notification.extras.getCharSequence("android.subText").toString().split("·")
+            _etaInDuration.value = etaInfo[0].trim()
+            _etaInDistance.value = etaInfo[1].trim()
+            _etaInTime.value = etaInfo[2].dropLast(7).trim()
         }
-    }
-
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            "map_directions",
-            "Map Directions",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        channel.description = "Shows navigation directions from Google Maps"
-        
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
