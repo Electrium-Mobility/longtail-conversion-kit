@@ -21,16 +21,11 @@ uint16_t conn_id;
 bool is_connected = false;
 
 uint8_t service_uuid[16] = {SERVICE_UUID};
-uint8_t destination_uuid[16] = {DESTINATION_UUID};
 uint8_t eta_uuid[16] = {ETA_UUID};
 uint8_t direction_uuid[16] = {DIRECTION_UUID};
 uint8_t direction_distance_uuid[16] = {DIRECTION_DISTANCE_UUID};
-uint8_t eta_minutes_uuid[16] = {ETA_MINUTES_UUID};
-uint8_t total_distance_uuid[16] = {TOTAL_DISTANCE_UUID};
-uint8_t precise_direction_uuid[16] = {PRECISE_DIRECTION_UUID};
 
-Data destination, eta, currentDirection, currentDirectionDistance, 
-etaMinutes, totalRemainingDistance, preciseDirection;
+Data eta, direction, distanceToNextDirection;
 
 Characteristic characteristics[7];
 
@@ -58,26 +53,14 @@ esp_gatt_srvc_id_t serviceID = {
 };
 
 void initializeBLECharacteristics() {
-  memcpy(characteristics[0].uuid.uuid.uuid128, destination_uuid, 16);
-  characteristics[0].data = &destination;
+  memcpy(characteristics[0].uuid.uuid.uuid128, eta_uuid, 16);
+  characteristics[0].data = &eta;
 
-  memcpy(characteristics[1].uuid.uuid.uuid128, eta_uuid, 16);
-  characteristics[1].data = &eta;
+  memcpy(characteristics[1].uuid.uuid.uuid128, direction_uuid, 16);
+  characteristics[1].data = &direction;
 
-  memcpy(characteristics[2].uuid.uuid.uuid128, direction_uuid, 16);
-  characteristics[2].data = &currentDirection;
-
-  memcpy(characteristics[3].uuid.uuid.uuid128, direction_distance_uuid, 16);
-  characteristics[3].data = &currentDirectionDistance;
-
-  memcpy(characteristics[4].uuid.uuid.uuid128, eta_minutes_uuid, 16);
-  characteristics[4].data = &etaMinutes;
-
-  memcpy(characteristics[5].uuid.uuid.uuid128, total_distance_uuid, 16);
-  characteristics[5].data = &totalRemainingDistance;
-
-  memcpy(characteristics[6].uuid.uuid.uuid128, precise_direction_uuid, 16);
-  characteristics[6].data = &preciseDirection;
+  memcpy(characteristics[2].uuid.uuid.uuid128, direction_distance_uuid, 16);
+  characteristics[2].data = &distanceToNextDirection;
 }
 
 Characteristic* findCharacteristicByUUID(uint8_t *uuid) {
@@ -155,7 +138,7 @@ void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gattc_if, esp_b
                 memcpy(value, param->write.value, param->write.len < 255 ? param->write.len : 255);
                 
                 //Set payload
-                characteristic->data->payload = value;
+                memcpy(characteristic->data->payload, value, sizeof(value));
                 characteristic->data->updated = true;
                 
                 ESP_LOGI(BLE_TAG, "Write received: %s", value);

@@ -1,8 +1,10 @@
 #ifndef DATA_H
 #define DATA_H
 
+#include "esp_bt_defs.h"
+
 typedef struct {
-    char* payload;
+    char payload[124];
     bool updated;
 } Data;
 
