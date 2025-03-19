@@ -163,17 +163,17 @@ void display_to_screen() {
     while (1) {
         int speed = rpm * M_PI * WHEEL_DIAMETER * 60 / 1000;
         is_connected = true;
-        for (uint16_t i = 2; i < 25; ++i) {
+        for (uint16_t i = 2; i < 120; ++i) {
             gfx->fillScreen(BG_COLOR);
-            displayLargeTextMeasurement("SPEED", speed, true, 10, 10);
-            displayLargeTextMeasurement("RPM", rpm, false, 270, 10);
+            displayLargeTextMeasurement("SPEED", i * M_PI * WHEEL_DIAMETER * 60 / 1000, true, 10, 10);
+            displayLargeTextMeasurement("RPM", i, false, 270, 10);
             displaySmallTextMeasurement("PAS", i - 2, true, 10, 130);
-            displaySmallTextMeasurement("ELEVATION", i * 100, false, 270, 130);
+            displaySmallTextMeasurement("ELEVATION", i * 10, false, 270, 130);
 
             displayMapsDirection();
             gfx->flush();
         
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
 }

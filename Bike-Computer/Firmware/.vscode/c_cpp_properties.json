@@ -168,6 +168,7 @@
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
+                "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/components/VescUart",
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
                 ""
             ],
@@ -334,6 +335,7 @@
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src",
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
+                    "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/components/VescUart",
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/HTTPUpdateServer/src",
                     ""
                 ]

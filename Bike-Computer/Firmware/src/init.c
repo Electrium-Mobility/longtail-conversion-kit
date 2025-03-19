@@ -12,11 +12,13 @@
 
 #include "display.h"
 #include "ble.h"
+#include "telemetry.h"
 
 #include "init.h"
 
 void initialize() {
     initArduino();
     init_display(); 
+    initUart();
     // initBLE();
 }
