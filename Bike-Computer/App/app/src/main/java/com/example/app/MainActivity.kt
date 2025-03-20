@@ -35,11 +35,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
+            val bleScanner = BLEScanner(this)
             NavHost(navController = navController, startDestination = "HomeScreen", builder = {
                 composable(route = "HomeScreen", content = { HomeScreen(navController = navController, devicesList = DEVICES_LIST) })
                 composable(route = "AllRPDevicesScreen", content = { AllRPDevicesScreen(navController = navController, devicesList = DEVICES_LIST) })
                 composable(route = "DisplayNotificationsScreen", content = { DisplayNotificationsScreen(navController = navController) })
-                composable(route = "DeviceListScreen", content = { DeviceListScreen(navController = navController) })
+                composable("DeviceListScreen") { DeviceListScreen(navController, bleScanner) }
             })
         }
     }

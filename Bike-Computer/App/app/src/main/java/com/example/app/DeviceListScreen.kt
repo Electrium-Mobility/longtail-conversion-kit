@@ -19,35 +19,49 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 
-@SuppressLint("MissingPermission")
 @Composable
-fun DeviceListScreen(navController: NavController) {
-    val bleScanner = navController.previousBackStackEntry
-        ?.savedStateHandle
-        ?.get<BLEScanner>("bleScanner")
-
+fun DeviceListScreen(navController: NavController, bleScanner: BLEScanner) {
     var scannedDevices by remember { mutableStateOf(emptyList<BluetoothDevice>()) }
 
+    LaunchedEffect(bleScanner) {
+        bleScanner.startScan()
+    }
+
     LaunchedEffect(Unit) {
-        bleScanner?.startScan()
-        scannedDevices = bleScanner?.getScanResults() ?: emptyList()
+        while (true) {
+            scannedDevices = bleScanner.getScanResults()
+            kotlinx.coroutines.delay(2000) // Refresh every 2 seconds
+        }
     }
 
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
+            Header(navController)
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                scannedDevices.forEach { device ->
-                    DeviceItem(deviceName = device.name ?: "Unknown Device", isConnected = false)
+                if (scannedDevices.isEmpty()) {
+                    Text("No devices found", fontSize = 18.sp, color = Color.Gray)
+                } else {
+                    scannedDevices.forEach { device ->
+                        val deviceName = try {
+                            device.name ?: "Unknown Device"
+                        } catch (e: SecurityException) {
+                            "Unknown Device (Permission Denied)"
+                        }
+                        DeviceItem(deviceName = deviceName, isConnected = false)
+                    }
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 private fun Header(navController: NavController) {
@@ -57,7 +71,7 @@ private fun Header(navController: NavController) {
         .background(Color(red = 50, green = 200, blue = 50))) {
         Row(modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(), 
+            .fillMaxHeight(),
             verticalAlignment = Alignment.CenterVertically) {
             TextButton(
                 onClick = {
