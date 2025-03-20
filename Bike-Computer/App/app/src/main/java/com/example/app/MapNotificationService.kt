@@ -53,7 +53,7 @@ class MapNotificationService : NotificationListenerService() {
             val etaInfo = notification.extras.getCharSequence("android.subText").toString().split("·")
             _etaInDuration.value = etaInfo[0].trim()
             _etaInDistance.value = etaInfo[1].trim()
-            _etaInTime.value = etaInfo[2].dropLast(7).trim()
+            _etaInTime.value = etaInfo[2].trim().split(" ").subList(0, 2).joinToString(" ")
         }
     }
 
