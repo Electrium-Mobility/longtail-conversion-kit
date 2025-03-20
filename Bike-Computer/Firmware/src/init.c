@@ -21,4 +21,5 @@ void initialize() {
     init_display(); 
     initUart();
     // initBLE();
+    vTaskDelete(NULL);
 }

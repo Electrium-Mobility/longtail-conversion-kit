@@ -151,7 +151,6 @@ extern "C" void init_display()
     if (displayToScreen != NULL) {
         xTaskNotifyGive(displayToScreen);
     }
-    vTaskDelete(NULL);
 }
 
 void display_to_screen() {
@@ -161,20 +160,16 @@ void display_to_screen() {
     ESP_LOGI(DISPLAY_TAG, "Initialization complete");
 
     while (1) {
-        int speed = rpm * M_PI * WHEEL_DIAMETER * 60 / 1000;
-        is_connected = true;
-        for (uint16_t i = 2; i < 120; ++i) {
-            gfx->fillScreen(BG_COLOR);
-            displayLargeTextMeasurement("SPEED", i * M_PI * WHEEL_DIAMETER * 60 / 1000, true, 10, 10);
-            displayLargeTextMeasurement("RPM", i, false, 270, 10);
-            displaySmallTextMeasurement("PAS", i - 2, true, 10, 130);
-            displaySmallTextMeasurement("ELEVATION", i * 10, false, 270, 130);
+        gfx->fillScreen(BG_COLOR);
+        displayLargeTextMeasurement("SPEED", speed, true, 10, 10);
+        displayLargeTextMeasurement("RPM", rpm, false, 270, 10);
+        displaySmallTextMeasurement("PAS", 1, true, 10, 130);
+        displaySmallTextMeasurement("ELEVATION", elevation, false, 270, 130);
 
-            displayMapsDirection();
-            gfx->flush();
+        displayMapsDirection();
+        gfx->flush();
         
-            vTaskDelay(pdMS_TO_TICKS(100));
-        }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
@@ -185,7 +180,12 @@ void displayLargeTextMeasurement(const char* title, uint16_t value, bool isSpeed
     }
 
     char valueBuffer[4];
-    snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
+    if (value == INT_MAX) {
+        snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
+    }
+    else {
+        snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
+    }
 
     gfx->setTextColor(BLACK);
 
@@ -219,7 +219,12 @@ void displaySmallTextMeasurement(const char* title, uint16_t value, bool isSpeed
     }
 
     char valueBuffer[4];
-    snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
+    if (value == INT_MAX) {
+        snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
+    }
+    else {
+        snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
+    }
 
     gfx->setTextColor(BLACK);
 

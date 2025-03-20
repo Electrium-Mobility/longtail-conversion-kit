@@ -42,9 +42,9 @@ int32_t receiveUartMessage(dataPackage *data, uint8_t * payloadReceived) {
 
 	while (xTaskGetTickCount() < timeout && messageRead == false) {
 
-		while (serialAvailable(UART_NUM) > 0) {
+		while (serialAvailable(VESC_UART_NUM) > 0) {
 			uint8_t byte;
-			int bytes_read = uart_read_bytes(UART_NUM, &byte, 1, pdMS_TO_TICKS(10));
+			int bytes_read = uart_read_bytes(VESC_UART_NUM, &byte, 1, pdMS_TO_TICKS(10));
 			if (bytes_read == 1) {
 				messageReceived[counter++] = byte;
 			}
@@ -168,7 +168,7 @@ int32_t packSendPayload(dataPackage *data, uint8_t * payload, int32_t lenPay) {
 	printf("Package to send: %s", messageSend);
 
 	// Sending package
-	int result = uart_write_bytes(UART_NUM, &messageSend, count);
+	int result = uart_write_bytes(VESC_UART_NUM, &messageSend, count);
 	if (result < 0) {
     	ESP_LOGE(VESC_UART_TAG, "Failed to write to UART, error: %d", result);
 	}

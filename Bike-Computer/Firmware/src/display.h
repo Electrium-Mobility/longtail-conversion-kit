@@ -38,7 +38,7 @@ extern Data eta, direction, distanceToNextDirection;
 // extern char* bitmap;
 extern bool is_connected;
 
-extern int rpm, elevation;
+extern int rpm, speed, elevation;
 
 void init_display();
 
