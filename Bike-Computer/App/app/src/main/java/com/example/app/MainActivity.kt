@@ -1,6 +1,8 @@
 package com.example.app
 
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -33,6 +35,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
         setContent {
             val navController = rememberNavController()
             val bleScanner = BLEScanner(this)
