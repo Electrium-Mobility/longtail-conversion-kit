@@ -8,9 +8,12 @@ import android.service.notification.NotificationListenerService
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.launch
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
 
 val DEVICES_LIST = listOf(
             "JBL Speaker",
@@ -51,6 +54,13 @@ class MainActivity : ComponentActivity() {
                 composable(route = "DisplayNotificationsScreen", content = { DisplayNotificationsScreen(navController = navController) })
                 composable(route = "DeviceListScreen", content = { DeviceListScreen(navController = navController) })
             })
+        }
+        lifecycleScope.launch {
+            MapNotificationService.directionIcon.collect { bitmap ->
+                if (bitmap != null) {
+                    BitmapSaver.saveBitmapToExternalStorage(this@MainActivity, bitmap)
+                }
+            }
         }
     }
 

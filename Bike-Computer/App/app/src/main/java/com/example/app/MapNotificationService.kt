@@ -1,10 +1,8 @@
 package com.example.app
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Environment
 import android.os.IBinder
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -13,10 +11,16 @@ import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
 
 class MapNotificationService : NotificationListenerService() {
 
     companion object {
+
+        object stopper {
+            var stop = 0
+        }
+
         private const val TAG = "NotificationService"
         private const val MAPS_PACKAGE = "com.google.android.apps.maps"
 
@@ -48,13 +52,36 @@ class MapNotificationService : NotificationListenerService() {
             val notification = sbn.notification
             _directionDistance.value = notification.extras.getCharSequence("android.title").toString()
             _directionText.value = notification.extras.getCharSequence("android.text").toString()
-            _directionIcon.value = notification.getLargeIcon().loadDrawable(this)?.toBitmap()
+            val icon = notification.getLargeIcon().loadDrawable(this)?.toBitmap()
+            Log.d(TAG, "Notification icon: $icon")
+            _directionIcon.value = icon
+            if (icon != null && stopper.stop == 0) {
+                val iconScaled40 = Bitmap.createScaledBitmap(icon, 40, 40, false)
+                stopper.stop = 1
+                val width = iconScaled40.width
+                val height = iconScaled40.height
+                val pixelCount = width * height
+                val pixels = IntArray(pixelCount)
+
+                // Copy the pixel data into the array
+                iconScaled40.getPixels(pixels, 0, width, 0, 0, width, height)
+                val directory = this.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+                val file = File(directory, "straightarrowbitmap.txt")
+                file.writeText("")
+                for (px in pixels) {
+                    file.appendText(String.format("%08X\n", px))
+                }
+            }
 
             val etaInfo = notification.extras.getCharSequence("android.subText").toString().split("·")
             _etaInDuration.value = etaInfo[0].trim()
             _etaInDistance.value = etaInfo[1].trim()
             _etaInTime.value = etaInfo[2].dropLast(7).trim()
+            if (icon != null) {
+                BitmapSaver.saveBitmapToExternalStorage(this, icon)
+            }
         }
+
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
