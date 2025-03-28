@@ -130,13 +130,13 @@ void readElevationAndSpeed(const char *buf) {
 
 	//Assign to global variables
 	if (isinf((double)altitude)) {
-		elevation = INT_MAX;
+		elevation = UINT16_MAX;
 	}
 	else {
 		elevation = (int)altitude;
 	}
 	if (isinf((double)velocity)) {
-		speed = INT_MAX;
+		speed = UINT16_MAX;
 	}
 	else {
 		speed = (int)velocity;
@@ -153,8 +153,8 @@ void fetchValues() {
     while (1) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
 		//Fetch VESC values and update rpm
-        getVescValues(vescData);
-        rpm = vescData->rpm;
+        // getVescValues(vescData);
+        // rpm = vescData->rpm;
 
 		//Fetch GPS values and update elevation and speed
 		rawReadings(buf);

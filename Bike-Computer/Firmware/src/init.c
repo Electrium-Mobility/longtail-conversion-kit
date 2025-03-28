@@ -17,9 +17,9 @@
 #include "init.h"
 
 void initialize() {
-    initArduino();
-    init_display(); 
-    initUart();
-    // initBLE();
+    // initArduino();
+    // init_display(); 
+    // initUart();
+    initBLE();
     vTaskDelete(NULL);
 }

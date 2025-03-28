@@ -10,7 +10,7 @@
 extern int rpm;
 extern int elevation;
 
-extern Data eta, direction, distanceToNextDirection;
+extern Data etaRelative, etaAbsolute, etaDistance, direction, distanceToNextDirection;
 extern char* bitmap;
 
 void initialize();
