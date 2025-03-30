@@ -18,7 +18,7 @@ uint16_t service_handle;
 esp_gatt_if_t gatts_if;
 uint16_t conn_id;
 bool is_connected = false;
-
+char* bitmap = "";
 uint8_t service_uuid[16] = {SERVICE_UUID};
 uint8_t eta_uuid[16] = {ETA_UUID};
 uint8_t direction_uuid[16] = {DIRECTION_UUID};
@@ -148,7 +148,7 @@ void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gattc_if, esp_b
     ESP_LOGI(BLE_TAG, "Adding characteristic");
     if (param->add_char.status == ESP_GATT_OK)
     {
-      ESP_LOGI(BLE_TAG, "About to create characteristic with UUID 0x%02X", *param->add_char.char_uuid.uuid.uuid128);
+      ESP_LOGI(BLE_TAG, "About to create characteristic with UUID 0x%02X, Handle %d", *param->add_char.char_uuid.uuid.uuid128, param->add_char.attr_handle);
       Characteristic *characteristic = findCharacteristicByUUID(param->add_char.char_uuid.uuid.uuid128);
       if (characteristic)
       {
@@ -205,6 +205,9 @@ void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gattc_if, esp_b
         esp_err_t ret = esp_ble_gatts_send_response(gattc_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
         ESP_LOGI(BLE_TAG, "%s", esp_err_to_name(ret));
         ESP_LOGI(BLE_TAG, "Response sent");
+      }
+      else {
+        ESP_LOGI(BLE_TAG, "No characteristic, handle is %d", param->write.handle);
       }
     }
     else
@@ -263,6 +266,8 @@ void initBLE()
   }
   ESP_ERROR_CHECK(ret);
 
+  ESP_LOGI(BLE_TAG, "NVS flash initialized");
+
   // Initialize Bluetooth controller
   esp_bt_controller_config_t btConfig = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
   ret = esp_bt_controller_init(&btConfig);
@@ -272,6 +277,8 @@ void initBLE()
     return;
   }
 
+  ESP_LOGI(BLE_TAG, "Bluetooth controller initialized");
+
   ret = esp_bt_controller_enable(ESP_BT_MODE_BLE);
   if (ret != ESP_OK)
   {
@@ -279,13 +286,18 @@ void initBLE()
     return;
   }
 
+  ESP_LOGI(BLE_TAG, "Bluetooth controller enabled");
+
   // Initialize Bluetooth host
   ret = esp_bluedroid_init();
+  ESP_LOGI(BLE_TAG, "%s", esp_err_to_name(ret));
   if (ret != ESP_OK)
   {
     ESP_LOGE(BLE_TAG, "Bluedroid init failed: %s", esp_err_to_name(ret));
     return;
   }
+
+  ESP_LOGI(BLE_TAG, "Bluetooth host initialized");
 
   ret = esp_bluedroid_enable();
   if (ret != ESP_OK)
@@ -293,6 +305,8 @@ void initBLE()
     ESP_LOGE(BLE_TAG, "Bluedroid enable failed: %s", esp_err_to_name(ret));
     return;
   }
+
+  ESP_LOGI(BLE_TAG, "Bluedroid enabled");
 
   // Register callbacks
   ret = esp_ble_gap_register_callback(gapEventHandler);
@@ -302,12 +316,16 @@ void initBLE()
     return;
   }
 
+  ESP_LOGI(BLE_TAG, "GAP callback registered");
+
   ret = esp_ble_gatts_register_callback(gattsEventHandler);
   if (ret != ESP_OK)
   {
     ESP_LOGE(BLE_TAG, "GATTS register callback failed: %s", esp_err_to_name(ret));
     return;
   }
+
+  ESP_LOGI(BLE_TAG, "GATTS callback registered");
 
   // Register application
   ret = esp_ble_gatts_app_register(0);
@@ -316,6 +334,8 @@ void initBLE()
     ESP_LOGE(BLE_TAG, "GATTS app register failed: %s", esp_err_to_name(ret));
     return;
   }
+
+  ESP_LOGI(BLE_TAG, "Application registered");
 
   // Set advertising data
   esp_ble_adv_data_t advData = {
@@ -343,10 +363,8 @@ void initBLE()
     return;
   }
 
+  ESP_LOGI(BLE_TAG, "Config adv data done");
+
   initializeBLECharacteristics();
   ESP_LOGI(BLE_TAG, "BLE initialization complete");
-  while (1)
-  {
-    vTaskDelay(pdMS_TO_TICKS(1000));
-  }
 }

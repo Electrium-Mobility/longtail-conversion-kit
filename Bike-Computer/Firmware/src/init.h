@@ -13,6 +13,8 @@ extern int elevation;
 extern Data etaRelative, etaAbsolute, etaDistance, direction, distanceToNextDirection;
 extern char* bitmap;
 
+extern SemaphoreHandle_t initMutex;
+
 void initialize();
 
 #endif

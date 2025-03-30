@@ -35,7 +35,7 @@ extern TaskHandle_t displayToScreen;
 extern SemaphoreHandle_t displayInitSemaphore;
 
 extern Data etaRelative, etaAbsolute, etaDistance, direction, distanceToNextDirection;
-// extern char* bitmap;
+extern char* bitmap;
 extern bool is_connected;
 
 extern int rpm, speed, elevation;

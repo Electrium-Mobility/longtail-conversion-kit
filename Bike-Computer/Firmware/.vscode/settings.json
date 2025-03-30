@@ -52,6 +52,7 @@
         "span": "c",
         "telemetry.h": "c",
         "math.h": "c",
-        "init.h": "c"
+        "init.h": "c",
+        "display.h": "c"
     }
 }

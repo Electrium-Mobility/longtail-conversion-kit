@@ -21,46 +21,64 @@
 Arduino_GFX *gfx = NULL;
 bool prevIsConnected = false;
 
+SemaphoreHandle_t initMutex;
+
 extern "C" void init_display()
 {
-    strcpy(etaRelative.payload, "15 min");
-    strcpy(etaAbsolute.payload, "7:43 PM");
-    strcpy(etaDistance.payload, "32km");
-    strcpy(direction.payload, "Markham road");
-    strcpy(distanceToNextDirection.payload, "50m");
+    initArduino();
+    // initMutex = xSemaphoreCreateMutex();
+    // if (xSemaphoreTake(initMutex, portMAX_DELAY) == pdTRUE) {
+        ESP_LOGI(DISPLAY_TAG, "Obtained mutex");
 
-    // Configure display
-    Arduino_DataBus *bus = new Arduino_ESP32QSPI(PIN_LCD_CS, PIN_LCD_SCLK, PIN_LCD_MOSI, PIN_LCD_MISO, PIN_LCD_QUADWP, PIN_LCD_QUADHD);
-    Arduino_GFX *g = new Arduino_NV3041A(bus, GFX_NOT_DEFINED, 0, true);
-    gfx = new Arduino_Canvas(DISP_WIDTH, DISP_HEIGHT, g);
-    
-    if (!gfx->begin())
-    {
-        ESP_LOGI(DISPLAY_TAG, "Display initialization failed");
-    }
-    else
-    {
-        ESP_LOGI(DISPLAY_TAG, "Display initialized successfully");
-    }
-    
-    gpio_set_direction(PIN_BACKLIGHT, GPIO_MODE_OUTPUT);
-    gpio_set_level(PIN_BACKLIGHT, 1);
+        strcpy(etaRelative.payload, "15 min");
+        strcpy(etaAbsolute.payload, "7:43 PM");
+        strcpy(etaDistance.payload, "32km");
+        strcpy(direction.payload, "Markham road");
+        strcpy(distanceToNextDirection.payload, "50m");
 
-        //Signal to display function that initialization is done
-    if (displayToScreen != NULL) {
-        xTaskNotifyGive(displayToScreen);
-    }
+        // Configure display
+        Arduino_DataBus *bus = new Arduino_ESP32QSPI(PIN_LCD_CS, PIN_LCD_SCLK, PIN_LCD_MOSI, PIN_LCD_MISO, PIN_LCD_QUADWP, PIN_LCD_QUADHD);
+        Arduino_GFX *g = new Arduino_NV3041A(bus, GFX_NOT_DEFINED, 0, true);
+        gfx = new Arduino_Canvas_Indexed(DISP_WIDTH, DISP_HEIGHT, g, 0, 0, 0, 1);
+
+        if (!gfx->begin())
+        {
+            ESP_LOGI(DISPLAY_TAG, "Display initialization failed");
+        }
+        else
+        {
+            ESP_LOGI(DISPLAY_TAG, "Display initialized successfully");
+        }
+        // I (2301) BLE: Free heap: 171976
+        // I (2301) BLE: Largest free block: 135156
+        gpio_set_direction(PIN_BACKLIGHT, GPIO_MODE_OUTPUT);
+        gpio_set_level(PIN_BACKLIGHT, 1);
+
+        // Signal to display function that initialization is done
+        if (displayToScreen != NULL)
+        {
+            xTaskNotifyGive(displayToScreen);
+            // xSemaphoreGive(initMutex);
+            vTaskDelay(pdMS_TO_TICKS(2000));
+            // vTaskDelete(NULL);
+        }
+    // }
+    // else {
+    //     ESP_LOGI(DISPLAY_TAG, "Could not obtain mutex");
+    // }
 }
 
-void display_to_screen() {
-    //Wait as long as necessary for initialization to complete
-	ESP_LOGI(DISPLAY_TAG, "Waiting for initialization");
+void display_to_screen()
+{
+    // Wait as long as necessary for initialization to complete
+    ESP_LOGI(DISPLAY_TAG, "Waiting for initialization");
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     ESP_LOGI(DISPLAY_TAG, "Initialization complete");
 
-    while (1) {
-        for (uint16_t i = 2; i < 25; ++i) {
-            is_connected = true;
+    while (1)
+    {
+        for (uint16_t i = 2; i < 25; ++i)
+        {
             gfx->fillScreen(BG_COLOR);
             displayLargeTextMeasurement("SPEED", i * M_PI * WHEEL_DIAMETER * 60 / 1000, true, 10, 10);
             displayLargeTextMeasurement("RPM", i, false, 270, 10);
@@ -69,38 +87,43 @@ void display_to_screen() {
 
             displayMapsDirection();
             gfx->flush();
-        
+
             vTaskDelay(pdMS_TO_TICKS(100));
         }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
-void displayLargeTextMeasurement(const char* title, uint16_t value, bool isSpeed, int16_t startX, int16_t startY) {
+void displayLargeTextMeasurement(const char *title, uint16_t value, bool isSpeed, int16_t startX, int16_t startY)
+{
     int pixelsForNumber = 70;
-    if (value >= 10) {
+    if (value >= 10)
+    {
         pixelsForNumber *= 2;
     }
 
     char valueBuffer[4];
-    if (value == UINT16_MAX) {
+    if (value == UINT16_MAX)
+    {
         snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
     }
-    else {
+    else
+    {
         snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
     }
 
     gfx->setTextColor(BLACK);
 
     gfx->setFont(&FreeSans10pt7b);
-    gfx->setCursor(startX, startY + 10); //Y position of this function represents the bottom
+    gfx->setCursor(startX, startY + 10); // Y position of this function represents the bottom
     gfx->println(title);
 
     gfx->setFont(&FreeSansBold60pt7b);
     gfx->setCursor(startX, startY + 102);
     gfx->println(valueBuffer);
 
-    if (isSpeed) {
+    if (isSpeed)
+    {
         gfx->setFont(&FreeSans24pt7b);
         gfx->setCursor(startX + pixelsForNumber, startY + 51);
         gfx->println("km/");
@@ -109,101 +132,138 @@ void displayLargeTextMeasurement(const char* title, uint16_t value, bool isSpeed
     }
 }
 
-void displaySmallTextMeasurement(const char* title, uint16_t value, bool isSpeed, int16_t startX, int16_t startY) {
+void displaySmallTextMeasurement(const char *title, uint16_t value, bool isSpeed, int16_t startX, int16_t startY)
+{
     int pixelsForNumber = 33;
-    if (value >= 1000) {
+    if (value >= 1000)
+    {
         pixelsForNumber *= 4;
     }
-    else if (value >= 100) {
+    else if (value >= 100)
+    {
         pixelsForNumber *= 3;
     }
-    else if (value >= 10) {
+    else if (value >= 10)
+    {
         pixelsForNumber *= 2;
     }
 
     char valueBuffer[4];
-    if (value == UINT16_MAX) {
+    if (value == UINT16_MAX)
+    {
         snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
     }
-    else {
+    else
+    {
         snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
     }
 
     gfx->setTextColor(BLACK);
 
     gfx->setFont(&FreeSans10pt7b);
-    gfx->setCursor(startX, startY + 10); //Y position of this function represents the bottom
+    gfx->setCursor(startX, startY + 10); // Y position of this function represents the bottom
     gfx->println(title);
 
     gfx->setFont(&FreeSansBold30pt7b);
     gfx->setCursor(startX, startY + 60);
     gfx->println(valueBuffer);
 
-    //PAS
-    if (isSpeed) {
+    // PAS
+    if (isSpeed)
+    {
         gfx->setFont(&FreeSans14pt7b);
         gfx->setCursor(startX + pixelsForNumber, startY + 60);
     }
-    else { //Elevation
+    else
+    { // Elevation
         gfx->setFont(&FreeSans14pt7b);
         gfx->setCursor(startX + pixelsForNumber, startY + 60);
         gfx->println("m");
     }
 }
 
-void displayMapsDirection() {
-    //Animate when connection status changes
-    if (is_connected && !prevIsConnected) {
+void displayMapsDirection()
+{
+    // Animate when connection status changes
+    if (is_connected && !prevIsConnected)
+    {
         animateMapsRectangle(272, 200, true);
         prevIsConnected = true;
     }
-    else if (!is_connected && prevIsConnected) {
+    else if (!is_connected && prevIsConnected)
+    {
         animateMapsRectangle(272, 200, false);
         prevIsConnected = false;
     }
-    //Draw rounded rectangle that covers the bottom part of the screen
-    else if (is_connected) {
+    // Draw rounded rectangle that covers the bottom part of the screen
+    else if (is_connected)
+    {
         gfx->fillRoundRect(0, 200, DISP_WIDTH, 72, 10, MAPS_BG_COLOR);
         gfx->fillRect(0, 265, DISP_WIDTH, 7, MAPS_BG_COLOR);
-    
+
         gfx->drawLine(90, 205, 90, 267, 0x4208);
-    
+
         gfx->setTextColor(WHITE);
 
-        gfx->draw16bitRGBBitmapWithTranColor(25, 205, STRAIGHT, 0x0000, 40, 40);
+        if (strcmp(bitmap, "TURN_LEFT") == 0) {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, TURN_LEFT, 0x0000, 40, 40);
+        }
+        else if (strcmp(bitmap, "TURN_RIGHT") == 0) {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, TURN_RIGHT, 0x0000, 40, 40);
+        }
+        else if (strcmp(bitmap, "SLIGHT_LEFT") == 0) {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, SLIGHT_LEFT, 0x0000, 40, 40);
+        }
+        else if (strcmp(bitmap, "SLIGHT_RIGHT") == 0) {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, SLIGHT_RIGHT, 0x0000, 40, 40);
+        }
+        else if (strcmp(bitmap, "DEST_LEFT") == 0) {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, DEST_LEFT, 0x0000, 40, 40);
+        }
+        else if (strcmp(bitmap, "DEST_RIGHT") == 0) {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, DEST_RIGHT, 0x0000, 40, 40);
+        }
+        else {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, STRAIGHT, 0x0000, 40, 40);
+        }
 
-        //Center distance to next direction
+        // Center distance to next direction
         int charWidth = 13;
         int textWidth = charWidth * strlen(distanceToNextDirection.payload);
-        //Display distance to next direction
-        gfx->setCursor((90 - textWidth)/2, 265); //Window is 90px wide, want to center 
+        // Display distance to next direction
+        gfx->setCursor((90 - textWidth) / 2, 265); // Window is 90px wide, want to center
         gfx->setFont(&FreeSansBold11pt7b);
         gfx->println(distanceToNextDirection.payload);
-    
-        //Display direction
+
+        // Display direction
         gfx->setCursor(100, 230);
         gfx->setFont(&FreeSans14pt7b);
         gfx->println(direction.payload);
 
         char etaMessage[382];
         sprintf(etaMessage, "ETA: %s - %s - %s", etaRelative.payload, etaAbsolute.payload, etaDistance.payload);
-        //Display ETA
+        // Display ETA
         gfx->setCursor(100, 265);
         gfx->setFont(&FreeSans10pt7b);
         gfx->println(etaMessage);
     }
 }
 
-void animateMapsRectangle(int startYPos, int endYPos, bool show) {
-    if (show) {
-        for (int yPos = startYPos; yPos >= endYPos; yPos -= 6) {
+void animateMapsRectangle(int startYPos, int endYPos, bool show)
+{
+    if (show)
+    {
+        for (int yPos = startYPos; yPos >= endYPos; yPos -= 6)
+        {
             gfx->fillRoundRect(0, yPos, DISP_WIDTH, (startYPos - yPos), 10, MAPS_BG_COLOR);
             gfx->fillRect(0, yPos + 7, DISP_WIDTH, 7, MAPS_BG_COLOR);
             gfx->flush();
         }
     }
-    else {
-        for (int yPos = endYPos; yPos <= startYPos; yPos += 6) {
+    else
+    {
+        for (int yPos = endYPos; yPos <= startYPos; yPos += 6)
+        {
             gfx->fillRect(0, endYPos, DISP_WIDTH, (startYPos - endYPos), BG_COLOR);
             gfx->fillRoundRect(0, yPos, DISP_WIDTH, (startYPos - yPos), 10, MAPS_BG_COLOR);
             gfx->fillRect(0, (yPos < (startYPos - 7) ? (startYPos - 7) : startYPos), DISP_WIDTH, 7, MAPS_BG_COLOR);
