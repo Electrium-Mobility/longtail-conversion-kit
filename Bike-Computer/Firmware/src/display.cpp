@@ -25,47 +25,61 @@ SemaphoreHandle_t initMutex;
 
 extern "C" void init_display()
 {
-    initArduino();
-    // initMutex = xSemaphoreCreateMutex();
-    // if (xSemaphoreTake(initMutex, portMAX_DELAY) == pdTRUE) {
-        ESP_LOGI(DISPLAY_TAG, "Obtained mutex");
 
-        strcpy(etaRelative.payload, "15 min");
-        strcpy(etaAbsolute.payload, "7:43 PM");
-        strcpy(etaDistance.payload, "32km");
-        strcpy(direction.payload, "Markham road");
-        strcpy(distanceToNextDirection.payload, "50m");
+    strcpy(etaRelative, "15 min");
+    strcpy(etaDistance, "7km");
+    strcpy(etaAbsolute, "10:04PM");
+    strcpy(bitmap, "STRAIGHT");
+    strcpy(directionInstruction, "Markham road");
+    strcpy(distanceToNextDirection, "500m");
+    // Configure display
+    Arduino_DataBus *bus = new Arduino_ESP32QSPI(PIN_LCD_CS, PIN_LCD_SCLK, PIN_LCD_MOSI, PIN_LCD_MISO, PIN_LCD_QUADWP, PIN_LCD_QUADHD);
+    Arduino_GFX *g = new Arduino_NV3041A(bus, GFX_NOT_DEFINED, 0, true);
+    gfx = new Arduino_Canvas_Indexed(DISP_WIDTH, DISP_HEIGHT, g, 0, 0, 0, 1);
 
-        // Configure display
-        Arduino_DataBus *bus = new Arduino_ESP32QSPI(PIN_LCD_CS, PIN_LCD_SCLK, PIN_LCD_MOSI, PIN_LCD_MISO, PIN_LCD_QUADWP, PIN_LCD_QUADHD);
-        Arduino_GFX *g = new Arduino_NV3041A(bus, GFX_NOT_DEFINED, 0, true);
-        gfx = new Arduino_Canvas_Indexed(DISP_WIDTH, DISP_HEIGHT, g, 0, 0, 0, 1);
+    if (!gfx->begin())
+    {
+        ESP_LOGI(DISPLAY_TAG, "Display initialization failed");
+    }
+    else
+    {
+        ESP_LOGI(DISPLAY_TAG, "Display initialized successfully");
+    }
 
-        if (!gfx->begin())
+    gpio_set_direction(PIN_BACKLIGHT, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_BACKLIGHT, 1);
+
+    // Signal to display function that initialization is done
+    if (displayToScreen != NULL)
+    {
+        xTaskNotifyGive(displayToScreen);
+    }
+}
+
+void parseBLEPayload(Data *data, char *str1, char *str2, char *str3)
+{
+    char *vals[3] = {str1, str2, str3};   // Store in array for easier access
+    const char *iterChar = data->payload; // Pointer to beginning of string
+    ESP_LOGI(DISPLAY_TAG, "Data payload: %s", data->payload);
+    int index = 0;
+    while (index < 3)
+    {
+        int bufIndex = 0;
+        char *end = (index < 2 ? strchr(iterChar, ',') : strchr(iterChar, '\0'));
+
+        // Copy values between commas into strBuf
+        char strBuf[32] = "";
+        while (iterChar != end)
         {
-            ESP_LOGI(DISPLAY_TAG, "Display initialization failed");
+            strBuf[bufIndex] = *iterChar;
+            ++iterChar;
+            ++bufIndex;
         }
-        else
-        {
-            ESP_LOGI(DISPLAY_TAG, "Display initialized successfully");
-        }
-        // I (2301) BLE: Free heap: 171976
-        // I (2301) BLE: Largest free block: 135156
-        gpio_set_direction(PIN_BACKLIGHT, GPIO_MODE_OUTPUT);
-        gpio_set_level(PIN_BACKLIGHT, 1);
-
-        // Signal to display function that initialization is done
-        if (displayToScreen != NULL)
-        {
-            xTaskNotifyGive(displayToScreen);
-            // xSemaphoreGive(initMutex);
-            vTaskDelay(pdMS_TO_TICKS(2000));
-            // vTaskDelete(NULL);
-        }
-    // }
-    // else {
-    //     ESP_LOGI(DISPLAY_TAG, "Could not obtain mutex");
-    // }
+        strcpy(vals[index], strBuf);
+        ESP_LOGI(DISPLAY_TAG, "Index: %d, Text: %s", index, vals[index]);
+        ++iterChar;
+        ++index;
+    }
 }
 
 void display_to_screen()
@@ -79,6 +93,17 @@ void display_to_screen()
     {
         for (uint16_t i = 2; i < 25; ++i)
         {
+            // Update values from BLE write
+            if (eta.updated)
+            {
+                parseBLEPayload(&eta, etaRelative, etaDistance, etaAbsolute);
+                eta.updated = false;
+            }
+            if (direction.updated)
+            {
+                parseBLEPayload(&direction, bitmap, directionInstruction, distanceToNextDirection);
+                direction.updated = false;
+            }
             gfx->fillScreen(BG_COLOR);
             displayLargeTextMeasurement("SPEED", i * M_PI * WHEEL_DIAMETER * 60 / 1000, true, 10, 10);
             displayLargeTextMeasurement("RPM", i, false, 270, 10);
@@ -205,43 +230,50 @@ void displayMapsDirection()
 
         gfx->setTextColor(WHITE);
 
-        if (strcmp(bitmap, "TURN_LEFT") == 0) {
+        if (strcmp(bitmap, "TURN_LEFT") == 0)
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, TURN_LEFT, 0x0000, 40, 40);
         }
-        else if (strcmp(bitmap, "TURN_RIGHT") == 0) {
+        else if (strcmp(bitmap, "TURN_RIGHT") == 0)
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, TURN_RIGHT, 0x0000, 40, 40);
         }
-        else if (strcmp(bitmap, "SLIGHT_LEFT") == 0) {
+        else if (strcmp(bitmap, "SLIGHT_LEFT") == 0)
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, SLIGHT_LEFT, 0x0000, 40, 40);
         }
-        else if (strcmp(bitmap, "SLIGHT_RIGHT") == 0) {
+        else if (strcmp(bitmap, "SLIGHT_RIGHT") == 0)
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, SLIGHT_RIGHT, 0x0000, 40, 40);
         }
-        else if (strcmp(bitmap, "DEST_LEFT") == 0) {
+        else if (strcmp(bitmap, "DEST_LEFT") == 0)
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, DEST_LEFT, 0x0000, 40, 40);
         }
-        else if (strcmp(bitmap, "DEST_RIGHT") == 0) {
+        else if (strcmp(bitmap, "DEST_RIGHT") == 0)
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, DEST_RIGHT, 0x0000, 40, 40);
         }
-        else {
+        else
+        {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, STRAIGHT, 0x0000, 40, 40);
         }
 
         // Center distance to next direction
         int charWidth = 13;
-        int textWidth = charWidth * strlen(distanceToNextDirection.payload);
+        int textWidth = charWidth * strlen(distanceToNextDirection);
         // Display distance to next direction
         gfx->setCursor((90 - textWidth) / 2, 265); // Window is 90px wide, want to center
         gfx->setFont(&FreeSansBold11pt7b);
-        gfx->println(distanceToNextDirection.payload);
+        gfx->println(distanceToNextDirection);
 
         // Display direction
         gfx->setCursor(100, 230);
         gfx->setFont(&FreeSans14pt7b);
-        gfx->println(direction.payload);
+        gfx->println(directionInstruction);
 
         char etaMessage[382];
-        sprintf(etaMessage, "ETA: %s - %s - %s", etaRelative.payload, etaAbsolute.payload, etaDistance.payload);
+        sprintf(etaMessage, "ETA: %s - %s - %s", etaRelative, etaAbsolute, etaDistance);
         // Display ETA
         gfx->setCursor(100, 265);
         gfx->setFont(&FreeSans10pt7b);

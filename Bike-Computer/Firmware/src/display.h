@@ -34,13 +34,17 @@ extern "C" {
 extern TaskHandle_t displayToScreen;
 extern SemaphoreHandle_t displayInitSemaphore;
 
-extern Data etaRelative, etaAbsolute, etaDistance, direction, distanceToNextDirection;
-extern char* bitmap;
 extern bool is_connected;
 
+extern Data eta, direction;
+
 extern int rpm, speed, elevation;
+extern char etaRelative[32], etaDistance[32], etaAbsolute[32];
+extern char bitmap[32], directionInstruction[32], distanceToNextDirection[32];
 
 void init_display();
+
+void parseBLEPayload(Data* data, char* str1, char* str2, char* str3);
 
 void display_to_screen();
 

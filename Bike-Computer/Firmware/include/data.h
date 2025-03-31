@@ -4,7 +4,7 @@
 #include "esp_bt_defs.h"
 
 typedef struct {
-    char payload[124];
+    char payload[256];
     bool updated;
 } Data;
 

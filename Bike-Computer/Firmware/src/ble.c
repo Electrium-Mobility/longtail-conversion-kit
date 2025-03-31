@@ -18,13 +18,19 @@ uint16_t service_handle;
 esp_gatt_if_t gatts_if;
 uint16_t conn_id;
 bool is_connected = false;
-char* bitmap = "";
+
+//Used to piece together long BLE writes to characteristic payload
+char messageBuf[256];
+size_t bufferIndex = 0;
+bool messageComplete = false;
+
 uint8_t service_uuid[16] = {SERVICE_UUID};
 uint8_t eta_uuid[16] = {ETA_UUID};
 uint8_t direction_uuid[16] = {DIRECTION_UUID};
 
 Data eta, direction;
-Data etaRelative, etaAbsolute, etaDistance, direction, distanceToNextDirection;
+char etaRelative[32], etaDistance[32], etaAbsolute[32]; //17 min, 1.2 km, 7:05 PM ETA
+char bitmap[32], directionInstruction[32], distanceToNextDirection[32];
 
 Characteristic characteristics[NUM_CHARACTERISTICS];
 
@@ -187,24 +193,47 @@ void gattsEventHandler(esp_gatts_cb_event_t event, esp_gatt_if_t gattc_if, esp_b
       Characteristic *characteristic = findCharacteristicByHandle(param->write.handle);
       if (characteristic)
       {
-        if (!param) {
-          ESP_LOGE(BLE_TAG, "param is NULL!");
-          return;
-      }
-        // Copy the data and ensure null termination
-        char value[256] = {0};
-        memcpy(value, param->write.value, param->write.len < 255 ? param->write.len : 255);
+        //Check if this contains the terminating character '$'
+        bool final_fragment = false;
+        if (param->write.len > 0 && param->write.value[param->write.len - 1] == '$') {
+          final_fragment = true;
+          --param->write.len;
+        }
 
-        // Set payload
-        memcpy(characteristic->data->payload, value, sizeof(value));
-        characteristic->data->updated = true;
+        // Make sure we don't overflow our buffer
+        size_t available_space = sizeof(messageBuf) - bufferIndex - 1;
+        size_t copy_len = param->write.len < available_space ? param->write.len : available_space;
 
-        ESP_LOGI(BLE_TAG, "Write to characteristic 0x%02X received: %s", *characteristic->uuid.uuid.uuid128, value);
+        memcpy(messageBuf + bufferIndex, param->write.value, copy_len);
+        bufferIndex += copy_len;
+        messageBuf[bufferIndex] = '\0';
+
+        ESP_LOGI(BLE_TAG, "Fragment received, buffer now: %s", messageBuf);
+
+        if (final_fragment) {
+          ESP_LOGI(BLE_TAG, "Message complete: %s", messageBuf);
+
+          //Copy first 255 bytes to payload and null terminate
+          strncpy(characteristic->data->payload, messageBuf, sizeof(characteristic->data->payload)-1);
+          characteristic->data->payload[256] = '\0';
+          characteristic->data->updated = true;
+          
+          //Reset message buffer values
+          bufferIndex = 0;
+          messageBuf[0] = '\0';
+        }
+
+        ESP_LOGI(BLE_TAG, "Write to characteristic 0x%02X received: %s", *characteristic->uuid.uuid.uuid128, param->write.value);
         gatts_if = gattc_if;
 
         esp_err_t ret = esp_ble_gatts_send_response(gattc_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
-        ESP_LOGI(BLE_TAG, "%s", esp_err_to_name(ret));
+        if (ret != ESP_OK) {
+          ESP_LOGI(BLE_TAG, "BLE Write response failed: %s", esp_err_to_name(ret));
+        }
         ESP_LOGI(BLE_TAG, "Response sent");
+
+        ESP_LOGI(BLE_TAG, "etaRelative: %s, etaDistance: %s, etaAbsolute: %s", etaRelative, etaDistance, etaAbsolute);
+        ESP_LOGI(BLE_TAG, "bitmap: %s, directionInstruction: %s, distanceToNextDirection: %s", bitmap, directionInstruction, distanceToNextDirection);
       }
       else {
         ESP_LOGI(BLE_TAG, "No characteristic, handle is %d", param->write.handle);
