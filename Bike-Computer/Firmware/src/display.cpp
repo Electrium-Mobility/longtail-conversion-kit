@@ -246,6 +246,14 @@ void displayMapsDirection()
         {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, SLIGHT_RIGHT, 0x0000, 40, 40);
         }
+        else if (strcmp(bitmap, "SHARP_LEFT") == 0)
+        {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, SHARP_LEFT, 0x0000, 40, 40);
+        }
+        else if (strcmp(bitmap, "SHARP_RIGHT") == 0)
+        {
+            gfx->draw16bitRGBBitmapWithTranColor(25, 205, SHARP_RIGHT, 0x0000, 40, 40);
+        }
         else if (strcmp(bitmap, "DEST_LEFT") == 0)
         {
             gfx->draw16bitRGBBitmapWithTranColor(25, 205, DEST_LEFT, 0x0000, 40, 40);
