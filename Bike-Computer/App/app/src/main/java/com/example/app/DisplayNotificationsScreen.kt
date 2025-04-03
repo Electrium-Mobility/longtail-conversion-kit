@@ -63,6 +63,7 @@ private fun DirectionsDisplay() {
     val etaInDuration by MapNotificationService.etaInDuration.collectAsState()
     val etaInDistance by MapNotificationService.etaInDistance.collectAsState()
     val etaInTime by MapNotificationService.etaInTime.collectAsState()
+    val iconType by MapNotificationService.iconType.collectAsState()
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 50.dp),
@@ -88,6 +89,12 @@ private fun DirectionsDisplay() {
                 modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally).size(100.dp),
                 bitmap = it.asImageBitmap(),
                 contentDescription = "Direction Arrow",
+            )
+            Text(
+                text = "Direction: $iconType",
+                modifier = Modifier.padding(8.dp).align(Alignment.CenterHorizontally),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
             )
         }
 
