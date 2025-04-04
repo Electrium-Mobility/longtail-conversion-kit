@@ -15,28 +15,47 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.app.service.BluetoothService
+import com.example.app.model.ESPDevice
 
 @Composable
-fun HomeScreen(devicesList: List<String>, navController: NavController) {
-    Scaffold(Modifier.fillMaxWidth()) { innerPadding ->
+fun HomeScreen(
+    navController: NavController,
+    bluetoothService: BluetoothService
+) {
+    val discoveredDevices by bluetoothService.discoveredDevices.collectAsState()
 
-        // Add Electrium Mobility Logo Header Here
-
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("ESP Device Scanner") }
+            )
+        }
+    ) { paddingValues ->
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
         ) {
             RPDevices(
-                devicesList,
-                modifier = Modifier.padding(innerPadding),
-                amount = 5, // max amount of devices to display on home screen
-                navController = navController
+                devicesList = discoveredDevices.map { it.name },
+                modifier = Modifier.padding(16.dp),
+                amount = 5,
+                navController = navController,
+                onDeviceClick = { index ->
+                    if (index < discoveredDevices.size) {
+                        bluetoothService.connectToDevice(discoveredDevices[index])
+                    }
+                }
             )
-
-            NotificationHubButton(navController)
-            ScanBLEDevicesButton(navController)
         }
-
-        // Add Bluetooth Button Here
     }
 }
 

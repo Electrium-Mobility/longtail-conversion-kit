@@ -28,10 +28,16 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun RPDevices(devicesList: List<String>, modifier: Modifier = Modifier, amount: Int = devicesList.size, navController: NavController) {
+fun RPDevices(
+    devicesList: List<String>,
+    modifier: Modifier = Modifier,
+    amount: Int = devicesList.size,
+    navController: NavController,
+    onDeviceClick: (Int) -> Unit
+) {
     Column(modifier = modifier) {
         Title()
-        DisplayDevices(devicesList, amount = amount)
+        DisplayDevices(devicesList, amount = amount, onDeviceClick = onDeviceClick)
         ViewAllButton(navController)
     }
 }
@@ -40,7 +46,7 @@ fun RPDevices(devicesList: List<String>, modifier: Modifier = Modifier, amount: 
 private fun Title() {
     Box(Modifier.fillMaxWidth()) {
         Text(
-            text = "Recently Paired Devices",
+            text = "Discovered ESP Devices",
             fontSize = 28.sp,
             modifier = Modifier.padding(bottom = 15.dp).align(Alignment.Center)
         )
@@ -48,11 +54,16 @@ private fun Title() {
 }
 
 @Composable
-fun DisplayDevices(devicesList: List<String>, modifier: Modifier = Modifier, amount: Int = devicesList.size) {
+fun DisplayDevices(
+    devicesList: List<String>,
+    modifier: Modifier = Modifier,
+    amount: Int = devicesList.size,
+    onDeviceClick: (Int) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp), modifier = modifier) {
         for (i in 0..< minOf(amount, devicesList.size)) {
             Button(
-                onClick = {  }, // configure when BLE is set up
+                onClick = { onDeviceClick(i) },
                 elevation = ButtonDefaults.buttonElevation(pressedElevation = 3.dp),
                 shape = RectangleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White),
@@ -60,7 +71,6 @@ fun DisplayDevices(devicesList: List<String>, modifier: Modifier = Modifier, amo
                     .fillMaxWidth()
                     .border(1.dp, Color.Black)
                     .height(60.dp)
-
             ) {
                 Text(
                     text = devicesList[i],
@@ -92,7 +102,7 @@ private fun ViewAllButton(navController: NavController) {
                 .align(Alignment.Center)
                 .wrapContentHeight(Alignment.CenterVertically),
             onClick = {
-                navController.navigate("AllRPDevicesScreen") // navigate to screen that displays all RP devices
+                navController.navigate("AllRPDevicesScreen")
             },
         ) {
             Text(
@@ -107,7 +117,6 @@ private fun ViewAllButton(navController: NavController) {
             )
         }
     }
-
 }
 
 @Preview(showBackground = true)
@@ -136,7 +145,8 @@ fun RPDevicesPreview() {
         ),
         amount = 5,
         modifier = Modifier.padding(16.dp), // mocks innerPadding from Scaffold
-        navController = rememberNavController() // mock navController for Previews
+        navController = rememberNavController(), // mock navController for Previews
+        onDeviceClick = { _ -> } // Placeholder for onDeviceClick
     )
 }
 
