@@ -20,7 +20,6 @@
 //Initialize all characteristic structs with respective UUIDs and data pointers
 void initializeBLECharacteristics();
 void initBLE();
-void cleanup_for_ble();
 
 //Search characteristic array
 Characteristic* findCharacteristicByUUID(uint8_t* uuid);
