@@ -1,5 +1,7 @@
 package com.example.app
 
+import android.content.Context
+import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +21,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColor
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 
@@ -48,7 +53,7 @@ private fun Header(navController: NavController) {
     Box(modifier = Modifier
         .fillMaxWidth()
         .height(60.dp)
-        .background(Color(red = 50, green = 200, blue = 50))) {
+        .background(color = Color(ContextCompat.getColor(LocalContext.current, R.color.green_main)))) {
         Row(modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
