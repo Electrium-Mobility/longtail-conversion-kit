@@ -42,7 +42,8 @@ fun AllRPDevicesScreen(devicesList: List<String>,
             DisplayDevices(
                 devicesList,
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                amount
+                amount,
+                onDeviceClick = { _ -> }
             )
         }
     }

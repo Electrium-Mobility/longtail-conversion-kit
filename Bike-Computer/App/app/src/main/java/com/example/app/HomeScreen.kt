@@ -10,10 +10,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -24,38 +22,29 @@ import androidx.navigation.NavController
 import com.example.app.service.BluetoothService
 import com.example.app.model.ESPDevice
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    navController: NavController,
-    bluetoothService: BluetoothService
-) {
-    val discoveredDevices by bluetoothService.discoveredDevices.collectAsState()
+fun HomeScreen(devicesList: List<String>, navController: NavController) {
+    Scaffold(Modifier.fillMaxWidth()) { innerPadding ->
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("ESP Device Scanner") }
-            )
-        }
-    ) { paddingValues ->
+        // Add Electrium Mobility Logo Header Here
+
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             RPDevices(
-                devicesList = discoveredDevices.map { it.name },
-                modifier = Modifier.padding(16.dp),
-                amount = 5,
+                devicesList,
+                modifier = Modifier.padding(innerPadding),
+                amount = 5, // max amount of devices to display on home screen
                 navController = navController,
-                onDeviceClick = { index ->
-                    if (index < discoveredDevices.size) {
-                        bluetoothService.connectToDevice(discoveredDevices[index])
-                    }
-                }
+                onDeviceClick = { _ -> }
             )
+
+            NotificationHubButton(navController)
+            ScanBLEDevicesButton(navController)
         }
+
+        // Add Bluetooth Button Here
     }
 }
 

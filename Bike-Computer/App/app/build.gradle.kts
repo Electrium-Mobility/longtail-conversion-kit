@@ -52,8 +52,8 @@ dependencies {
     implementation(libs.androidx.material3)
     
     // Bluetooth dependencies
-    implementation("androidx.bluetooth:bluetooth:1.0.0-alpha01")
-    implementation("androidx.bluetooth:bluetooth-scan:1.0.0-alpha01")
+    implementation("androidx.bluetooth:bluetooth:1.0.0-alpha02")
+//    implementation("androidx.bluetooth:bluetooth-scan:1.0.0-alpha01")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
