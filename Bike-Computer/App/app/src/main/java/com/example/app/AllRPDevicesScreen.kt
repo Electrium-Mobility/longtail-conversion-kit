@@ -18,6 +18,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,20 +33,23 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColor
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.app.utils.ConnectedDevice
+import com.example.app.utils.DeviceManager
 
 @Composable
-fun AllRPDevicesScreen(devicesList: List<String>,
-                       modifier: Modifier = Modifier,
-                       amount: Int = devicesList.size,
+fun AllRPDevicesScreen(deviceManager: DeviceManager,
                        navController: NavController
 ) {
+    val devices by remember( {
+        mutableStateOf(deviceManager.getPairedDevices())
+    } )
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
-        Column(modifier = modifier.padding(innerPadding)) {
+        Column(modifier = Modifier.padding(innerPadding)) {
             Header(navController)
             DisplayDevices(
-                devicesList,
+                devices,
                 modifier = Modifier.verticalScroll(rememberScrollState()),
-                amount,
+                amount = devices.size,
                 onDeviceClick = { _ -> }
             )
         }
@@ -79,34 +86,5 @@ private fun Header(navController: NavController) {
             )
         }
     }
-}
-
-@Preview (showBackground = true)
-@Composable
-fun AllRPDevicesScreenPreview() {
-    AllRPDevicesScreen(
-        devicesList = listOf(
-            "JBL Speaker",
-            "iPhone 3",
-            "Someone's Laptop",
-            "AirPods",
-            "iPhone 4",
-            "iPhone 5",
-            "Someone's Bose Headphones",
-            "Computer",
-            "Smart Fridge",
-            "JBL Speaker",
-            "iPhone 3",
-            "Someone's Laptop",
-            "AirPods",
-            "iPhone 4",
-            "iPhone 5",
-            "Someone's Bose Headphones",
-            "Computer",
-            "Smart Fridge"
-        ),
-        modifier = Modifier.padding(16.dp), // mocks innerPadding from Scaffold
-        navController = rememberNavController() // mock navController for Previews
-    )
 }
 

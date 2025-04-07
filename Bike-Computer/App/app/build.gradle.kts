@@ -54,6 +54,8 @@ dependencies {
     // Bluetooth dependencies
     implementation("androidx.bluetooth:bluetooth:1.0.0-alpha02")
 //    implementation("androidx.bluetooth:bluetooth-scan:1.0.0-alpha01")
+
+    implementation("com.google.code.gson:gson:2.12.1")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,63 +28,67 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.app.utils.ConnectedDevice
 
 @Composable
 fun RPDevices(
-    devicesList: List<String>,
+    devices: List<ConnectedDevice>,
     modifier: Modifier = Modifier,
-    amount: Int = devicesList.size,
+    amount: Int = devices.size,
     navController: NavController,
-    onDeviceClick: (Int) -> Unit
+    onDeviceClick: (ConnectedDevice) -> Unit
 ) {
     Column(modifier = modifier) {
-        Title()
-        DisplayDevices(devicesList, amount = amount, onDeviceClick = onDeviceClick)
+        DisplayDevices(devices = devices, amount = amount, onDeviceClick = onDeviceClick)
         ViewAllButton(navController)
     }
 }
 
 @Composable
-private fun Title() {
-    Box(Modifier.fillMaxWidth()) {
-        Text(
-            text = "Discovered ESP Devices",
-            fontSize = 28.sp,
-            modifier = Modifier.padding(bottom = 15.dp).align(Alignment.Center)
-        )
-    }
-}
-
-@Composable
 fun DisplayDevices(
-    devicesList: List<String>,
+    devices: List<ConnectedDevice>,
     modifier: Modifier = Modifier,
-    amount: Int = devicesList.size,
-    onDeviceClick: (Int) -> Unit
+    amount: Int = devices.size,
+    onDeviceClick: (ConnectedDevice) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp), modifier = modifier) {
-        for (i in 0..< minOf(amount, devicesList.size)) {
-            Button(
-                onClick = { onDeviceClick(i) },
-                elevation = ButtonDefaults.buttonElevation(pressedElevation = 3.dp),
-                shape = RectangleShape,
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, Color.Black)
-                    .height(60.dp)
-            ) {
-                Text(
-                    text = devicesList[i],
-                    color = Color.Black,
-                    textAlign = TextAlign.Left,
+        if (devices.isEmpty()) {
+            Text(
+                text = "No devices connected yet",
+                modifier = Modifier.padding(16.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+        else {
+            for (i in 0..<minOf(amount, devices.size)) {
+                val device = devices[i]
+                Button(
+                    onClick = { onDeviceClick(device) },
+                    elevation = ButtonDefaults.buttonElevation(pressedElevation = 3.dp),
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight()
-                        .wrapContentHeight(align = Alignment.CenterVertically),
-                    fontSize = 20.sp,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                )
+                        .height(50.dp)
+                ) {
+                    Text(
+                        text = device.name,
+                        color = Color.Black,
+                        textAlign = TextAlign.Left,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .wrapContentHeight(align = Alignment.CenterVertically),
+                        fontSize = 20.sp,
+                        )
+                }
+                if (i < minOf(amount, devices.size) - 1) {
+                    HorizontalDivider(
+                        color = Color.LightGray,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
             }
         }
     }
@@ -118,35 +124,3 @@ private fun ViewAllButton(navController: NavController) {
         }
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun RPDevicesPreview() {
-    RPDevices(
-        devicesList = listOf(
-            "JBL Speaker",
-            "iPhone 3",
-            "Someone's Laptop",
-            "AirPods",
-            "iPhone 4",
-            "iPhone 5",
-            "Someone's Bose Headphones",
-            "Computer",
-            "Smart Fridge",
-            "JBL Speaker",
-            "iPhone 3",
-            "Someone's Laptop",
-            "AirPods",
-            "iPhone 4",
-            "iPhone 5",
-            "Someone's Bose Headphones",
-            "Computer",
-            "Smart Fridge"
-        ),
-        amount = 5,
-        modifier = Modifier.padding(16.dp), // mocks innerPadding from Scaffold
-        navController = rememberNavController(), // mock navController for Previews
-        onDeviceClick = { _ -> } // Placeholder for onDeviceClick
-    )
-}
-
