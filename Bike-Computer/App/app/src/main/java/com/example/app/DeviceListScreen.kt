@@ -1,6 +1,9 @@
 package com.example.app
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 
+@SuppressLint("MissingPermission")
 @Composable
 fun DeviceListScreen(navController: NavController, bleScanner: BLEScanner) {
     var scannedDevices by remember { mutableStateOf(emptyList<BluetoothDevice>()) }
@@ -64,12 +69,7 @@ fun DeviceListScreen(navController: NavController, bleScanner: BLEScanner) {
                     Text("No devices found", fontSize = 18.sp, color = Color.Gray)
                 } else {
                     scannedDevices.forEach { device ->
-                        val deviceAddress = try {
-                            device.address ?: "Unknown Address"
-                        } catch (e: SecurityException) {
-                            "Unknown Device (Permission Denied)"
-                        }
-                        DeviceItem(deviceAddress = deviceAddress, isConnected = false)
+                        DeviceItem(device = device, bleScanner = bleScanner)
                     }
                 }
             }
@@ -112,10 +112,24 @@ private fun Header(navController: NavController) {
 }
 }
 
+@SuppressLint("MissingPermission")
 @Composable
-fun DeviceItem(deviceAddress: String, isConnected: Boolean) {
+fun DeviceItem(device: BluetoothDevice, bleScanner: BLEScanner) {
+    val isConnected by bleScanner.monitorDeviceConnection(device).collectAsState(initial = false)
+    val deviceName = try {
+        device.name ?: "Unknown Device"
+    } catch (e: SecurityException) {
+        "Unknown Device (Permission Denied)"
+    }
     Button(
-        onClick = {},
+        onClick = {
+            if (!isConnected) {
+                bleScanner.connectToDevice(device)
+            }
+            else {
+                bleScanner.disconnect()
+            }
+                  },
         modifier = Modifier
             .fillMaxWidth()
             .height(60.dp)
@@ -126,7 +140,7 @@ fun DeviceItem(deviceAddress: String, isConnected: Boolean) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = deviceAddress,
+                text = deviceName,
                 fontSize = 20.sp
             )
             Text(

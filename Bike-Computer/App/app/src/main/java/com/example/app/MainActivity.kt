@@ -44,14 +44,14 @@ val DEVICES_LIST = listOf(
 
 class MainActivity : ComponentActivity() {
     private val TAG = "MAIN"
-    private val requestBluetoothPermissionLauncher = registerForActivityResult(
+    private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            Log.d(TAG, "BLUETOOTH_CONNECT permission granted")
+            Log.d(TAG, "Permission granted")
             // Retry the operation that needs permission
         } else {
-            Log.d(TAG, "BLUETOOTH_CONNECT permission denied")
+            Log.d(TAG, "Permission denied")
         }
     }
 
@@ -67,13 +67,31 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
 
-        // Request Bluetooth connect permission so we can get previous devices
+        // Request Bluetooth connect permission
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.BLUETOOTH_CONNECT
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            requestBluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            requestPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+
+        // Request Bluetooth scan permission
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.BLUETOOTH_SCAN
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(Manifest.permission.BLUETOOTH_SCAN)
+        }
+
+        // Request Fine location permission
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
         setContent {

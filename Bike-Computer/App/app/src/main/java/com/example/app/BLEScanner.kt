@@ -15,6 +15,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.UUID
 
 class BLEScanner(private val context: Context) {
@@ -23,12 +25,15 @@ class BLEScanner(private val context: Context) {
     private val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
     private var scanning = false
     private val scanResults = mutableListOf<BluetoothDevice>()
-    private val targetMacAddress = "98:3d:ae:e9:2a:aa"
     private var bluetoothGatt: BluetoothGatt? = null
 
-    private val SERVICE_UUID = UUID.fromString("c8a19548-8efa-4143-87eb-5e85ecefc852")
-    private val ETA_UUID = UUID.fromString("9af73d89-bc02-4c61-ba43-9d65fa7fc86c")
-    private val DIRECTION_UUID = UUID.fromString("51b844f5-72ea-29bb-1248-cf98be98eeb2")
+    private val targetMacAddress = "98:3d:ae:e9:2a:aa"
+    private val serviceUUID = UUID.fromString("c8a19548-8efa-4143-87eb-5e85ecefc852")
+    private val etaUUID = UUID.fromString("9af73d89-bc02-4c61-ba43-9d65fa7fc86c")
+    private val directionUUID = UUID.fromString("b2ee98be-98cf-4812-bb29-ea72f544b851")
+
+    //Map each BLE device to it's connection status
+    private val connectionStates = mutableMapOf<String, MutableStateFlow<Boolean>>()
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -40,7 +45,6 @@ class BLEScanner(private val context: Context) {
                 Log.d("BLEScanner", "Found target device: $deviceName - ${device.address}")
                 scanResults.add(device)
                 stopScan()
-                connectToDevice(device)
             }
         }
 
@@ -48,6 +52,31 @@ class BLEScanner(private val context: Context) {
             super.onScanFailed(errorCode)
             scanning = false
             Log.e("BLEScanner", "Scan failed with error code: $errorCode")
+        }
+    }
+
+    fun monitorDeviceConnection(device: BluetoothDevice) : Flow<Boolean> {
+        val address = device.address
+        if (!connectionStates.containsKey(address)) {
+            connectionStates[address] = MutableStateFlow(isDeviceConnected((device)))
+        }
+        return connectionStates[address]!!
+    }
+
+    fun updateConnectionState(device: BluetoothDevice, connected: Boolean) {
+        val address = device.address
+        if (!connectionStates.containsKey(address)) {
+            connectionStates[address] = MutableStateFlow(connected)
+        } else {
+            connectionStates[address]!!.value = connected
+        }
+    }
+
+    fun isDeviceConnected(device: BluetoothDevice): Boolean {
+        return try {
+            bluetoothManager?.getConnectionState(device, BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED
+        } catch (e: SecurityException) {
+            false
         }
     }
 
@@ -80,7 +109,7 @@ class BLEScanner(private val context: Context) {
         }
     }
 
-    private fun connectToDevice(device: BluetoothDevice) {
+    fun connectToDevice(device: BluetoothDevice) {
         if (!hasPermissions()) {
             Log.e("BLEScanner", "Missing permissions for GATT connection")
             return
@@ -93,9 +122,11 @@ class BLEScanner(private val context: Context) {
                         BluetoothProfile.STATE_CONNECTED -> {
                             Log.d("BLEScanner", "Connected to ${device.address}")
                             gatt.discoverServices()
+                            updateConnectionState(device, true)
                         }
                         BluetoothProfile.STATE_DISCONNECTED -> {
                             Log.d("BLEScanner", "Disconnected from ${device.address}")
+                            updateConnectionState(device, false)
                         }
                     }
                 }
@@ -104,17 +135,17 @@ class BLEScanner(private val context: Context) {
                     if (!hasPermissions()) return
                     if (status == BluetoothGatt.GATT_SUCCESS) {
                         Log.d("BLEScanner", "Services discovered: ${gatt.services.size} services")
-                        val service = gatt.getService(SERVICE_UUID)
+                        val service = gatt.getService(serviceUUID)
                         if (service != null) {
                             // Example data to send
-                            val etaData = "EstimatedTimeArrival:12:30PM"
-                            val directionData = "Northbound"
+                            val etaData = "25 min,100m,10:23AM"
+                            val directionData = "TURN_LEFT,Kingston Road,50m"
 
                             // Send data to each characteristic
-                            sendDataToCharacteristic(gatt, service, ETA_UUID, etaData)
-                            sendDataToCharacteristic(gatt, service, DIRECTION_UUID, directionData)
+                            sendDataToCharacteristic(gatt, service, etaUUID, etaData)
+                            sendDataToCharacteristic(gatt, service, directionUUID, directionData)
                         } else {
-                            Log.e("BLEScanner", "Service $SERVICE_UUID not found")
+                            Log.e("BLEScanner", "Service $serviceUUID not found")
                         }
                     } else {
                         Log.e("BLEScanner", "Service discovery failed: $status")

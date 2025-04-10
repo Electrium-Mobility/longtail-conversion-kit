@@ -23,12 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
-import com.example.app.service.BluetoothService
-import com.example.app.model.ESPDevice
 import com.example.app.utils.DeviceManager
 
 @OptIn(ExperimentalMaterial3Api::class)
