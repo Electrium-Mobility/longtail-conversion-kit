@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -45,7 +47,6 @@ fun DisplayNotificationsScreen(
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Column(
             modifier = modifier
-                .padding(innerPadding)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -144,7 +145,7 @@ private fun DirectionsDisplay() {
 private fun Header(navController: NavController) {
     Box(modifier = Modifier
         .fillMaxWidth()
-        .height(60.dp)
+        .height(80.dp)
         .background(color = Color(ContextCompat.getColor(LocalContext.current, R.color.green_main)))) {
         Row(modifier = Modifier
             .fillMaxWidth()
@@ -153,12 +154,15 @@ private fun Header(navController: NavController) {
                 onClick = {
                     navController.navigate("HomeScreen")
                 }, // go back to home screen
-                modifier = Modifier.width(40.dp)
+                modifier = Modifier
+                    .padding(top = 30.dp)
+                    .size(70.dp)
             ) {
-                Text(
-                    text = "<",
-                    color = Color.White,
-                    fontSize = 34.sp
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(34.dp)
                 )
             }
             Text(
@@ -166,7 +170,7 @@ private fun Header(navController: NavController) {
                 color = Color.White,
                 fontSize = 28.sp,
                 modifier = Modifier
-                    .padding(start = 70.dp)
+                    .padding(start = 45.dp, top = 30.dp)
             )
         }
     }

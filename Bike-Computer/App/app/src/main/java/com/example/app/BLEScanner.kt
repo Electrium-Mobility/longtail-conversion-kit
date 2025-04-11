@@ -76,7 +76,7 @@ class BLEScanner(private val context: Context) {
         }
     }
 
-    fun isDeviceConnected(device: BluetoothDevice): Boolean {
+    private fun isDeviceConnected(device: BluetoothDevice): Boolean {
         return try {
             bluetoothManager?.getConnectionState(device, BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED
         } catch (e: SecurityException) {
@@ -111,6 +111,24 @@ class BLEScanner(private val context: Context) {
             scanning = false
             Log.e("BLEScanner", "SecurityException: ${e.message}")
         }
+    }
+
+    fun sendNavigationData(etaData: String, directionData: String) {
+        val gatt = bluetoothGatt ?: return
+        if (!hasPermissions()) {
+            Log.e("BLEScanner", "Missing permissions for sending navigation data")
+            return
+        }
+
+        // Get the service
+        val service = gatt.getService(serviceUUID) ?: run {
+            Log.e("BLEScanner", "Service $serviceUUID not found")
+            return
+        }
+
+        // Send data to each characteristic
+        sendDataToCharacteristic(gatt, service, etaUUID, etaData)
+        sendDataToCharacteristic(gatt, service, directionUUID, directionData)
     }
 
     @SuppressLint("MissingPermission")
@@ -179,13 +197,7 @@ class BLEScanner(private val context: Context) {
                         Log.d("BLEScanner", "Services discovered: ${gatt.services.size} services")
                         val service = gatt.getService(serviceUUID)
                         if (service != null) {
-                            // Example data to send
-                            val etaData = "25 min,100m,10:23AM"
-                            val directionData = "TURN_LEFT,Kingston Road,50m"
-
-                            // Send data to each characteristic
-                            sendDataToCharacteristic(gatt, service, etaUUID, etaData)
-                            sendDataToCharacteristic(gatt, service, directionUUID, directionData)
+                            Log.d("BLEScanner", "Found service with UUID $serviceUUID")
                         } else {
                             Log.e("BLEScanner", "Service $serviceUUID not found")
                         }

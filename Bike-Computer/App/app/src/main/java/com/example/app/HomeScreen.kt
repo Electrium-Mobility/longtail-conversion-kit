@@ -46,7 +46,7 @@ fun HomeScreen(deviceManager: DeviceManager, navController: NavController) {
             ) {
                 Image(painter = painterResource(id = R.drawable.electrium_logo),
                     contentDescription = "Electrium Logo",
-                    modifier = Modifier.fillMaxWidth().padding(16.dp, top = 24.dp, end = 18.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp, top = 30.dp, end = 18.dp),
                     contentScale = ContentScale.FillWidth
                 )
             }

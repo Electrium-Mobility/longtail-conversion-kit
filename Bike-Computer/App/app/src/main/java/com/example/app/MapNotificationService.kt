@@ -17,10 +17,6 @@ class MapNotificationService : NotificationListenerService() {
 
     companion object {
 
-        object stopper {
-            var stop = 0
-        }
-
         private const val TAG = "NotificationService"
         private const val MAPS_PACKAGE = "com.google.android.apps.maps"
 
@@ -41,10 +37,12 @@ class MapNotificationService : NotificationListenerService() {
         val iconType: StateFlow<String?> = _iconType.asStateFlow()
     }
 
+    private lateinit var bleScanner: BLEScanner
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "NotificationService created")
+        bleScanner = BLEScanner(this)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -84,6 +82,21 @@ class MapNotificationService : NotificationListenerService() {
             _etaInTime.value = etaInfo[2].trim().split(" ").subList(0, 2).joinToString(" ")
         }
 
+    }
+
+    private fun sendNavigationData() {
+        // Check if we have the data we need
+        val bitmap = _iconType.value ?: return
+        val directionInstruction = _directionText.value ?: return
+        val distanceToNextDirection = _directionDistance.value ?: return
+        val etaRelative = _etaInDuration.value ?: return
+        val etaDistance = _etaInDistance.value ?: return
+        val etaAbsolute = _etaInTime.value ?: return
+
+        val directionData = "$bitmap,$directionInstruction,$distanceToNextDirection"
+        val etaData = "$etaRelative,$etaDistance,$etaAbsolute"
+
+        bleScanner.sendNavigationData(etaData, directionData)
     }
 
     private fun identifyDirection(pxArray: IntArray): String {
