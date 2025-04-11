@@ -37,12 +37,12 @@ class MapNotificationService : NotificationListenerService() {
         val iconType: StateFlow<String?> = _iconType.asStateFlow()
     }
 
-    private lateinit var bleScanner: BLEScanner
+    private lateinit var bleService: BLEService
 
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "NotificationService created")
-        bleScanner = BLEScanner(this)
+        bleService = BLEService(this)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -96,7 +96,7 @@ class MapNotificationService : NotificationListenerService() {
         val directionData = "$bitmap,$directionInstruction,$distanceToNextDirection"
         val etaData = "$etaRelative,$etaDistance,$etaAbsolute"
 
-        bleScanner.sendNavigationData(etaData, directionData)
+        bleService.sendNavigationData(etaData, directionData)
     }
 
     private fun identifyDirection(pxArray: IntArray): String {

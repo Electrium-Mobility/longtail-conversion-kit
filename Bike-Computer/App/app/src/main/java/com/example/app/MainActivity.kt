@@ -96,12 +96,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
-            val bleScanner = BLEScanner(this)
+            val bleService = BLEService(this)
             NavHost(navController = navController, startDestination = "HomeScreen", builder = {
                 composable(route = "HomeScreen", content = { HomeScreen(navController = navController, deviceManager = deviceManager) })
                 composable(route = "AllRPDevicesScreen", content = { AllRPDevicesScreen(navController = navController, deviceManager = deviceManager) })
                 composable(route = "DisplayNotificationsScreen", content = { DisplayNotificationsScreen(navController = navController) })
-                composable("DeviceListScreen") { DeviceListScreen(navController, bleScanner) }
+                composable("DeviceListScreen") { DeviceListScreen(navController, bleService) }
             })
         }
         lifecycleScope.launch {

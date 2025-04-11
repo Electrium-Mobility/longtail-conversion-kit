@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,16 +45,16 @@ import androidx.navigation.NavController
 
 @SuppressLint("MissingPermission")
 @Composable
-fun DeviceListScreen(navController: NavController, bleScanner: BLEScanner) {
+fun DeviceListScreen(navController: NavController, bleService: BLEService) {
     var scannedDevices by remember { mutableStateOf(emptyList<BluetoothDevice>()) }
 
-    LaunchedEffect(bleScanner) {
-        bleScanner.startScan()
+    LaunchedEffect(bleService) {
+        bleService.startScan()
     }
 
     LaunchedEffect(Unit) {
         while (true) {
-            scannedDevices = bleScanner.getScanResults()
+            scannedDevices = bleService.getScanResults()
             kotlinx.coroutines.delay(2000) // Refresh every 2 seconds
         }
     }
@@ -69,10 +70,10 @@ fun DeviceListScreen(navController: NavController, bleScanner: BLEScanner) {
                     .verticalScroll(rememberScrollState())
             ) {
                 if (scannedDevices.isEmpty()) {
-                    Text("No devices found", fontSize = 18.sp, color = Color.Gray)
+                    Text("No devices found", style = MaterialTheme.typography.bodyLarge)
                 } else {
                     scannedDevices.forEach { device ->
-                        DeviceItem(device = device, bleScanner = bleScanner)
+                        DeviceItem(device = device, bleService = bleService)
                     }
                 }
             }
@@ -120,8 +121,8 @@ private fun Header(navController: NavController) {
 
 @SuppressLint("MissingPermission")
 @Composable
-fun DeviceItem(device: BluetoothDevice, bleScanner: BLEScanner) {
-    val isConnected by bleScanner.monitorDeviceConnection(device).collectAsState(initial = false)
+fun DeviceItem(device: BluetoothDevice, bleService: BLEService) {
+    val isConnected by bleService.monitorDeviceConnection(device).collectAsState(initial = false)
     val deviceName = try {
         device.name ?: "Unknown Device"
     } catch (e: SecurityException) {
@@ -130,10 +131,10 @@ fun DeviceItem(device: BluetoothDevice, bleScanner: BLEScanner) {
     Button(
         onClick = {
             if (!isConnected) {
-                bleScanner.connectToDevice(device)
+                bleService.connectToDevice(device)
             }
             else {
-                bleScanner.disconnect(device)
+                bleService.disconnect(device)
             }
                   },
         modifier = Modifier

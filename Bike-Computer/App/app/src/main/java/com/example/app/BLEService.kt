@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.UUID
 
-class BLEScanner(private val context: Context) {
+class BLEService(private val context: Context) {
     private val bluetoothManager: BluetoothManager? = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
     private val bluetoothAdapter = bluetoothManager?.adapter
     private val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
@@ -43,10 +43,10 @@ class BLEScanner(private val context: Context) {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
             val device = result.device
-            Log.d("BLEScanner", "Scan result: ${device.address}, RSSI: ${result.rssi}")
+            Log.d("BLEService", "Scan result: ${device.address}, RSSI: ${result.rssi}")
             if (device.address.equals(targetMacAddress, ignoreCase = true)) {
                 val deviceName = getDeviceName(device)
-                Log.d("BLEScanner", "Found target device: $deviceName - ${device.address}")
+                Log.d("BLEService", "Found target device: $deviceName - ${device.address}")
                 scanResults.add(device)
                 stopScan()
             }
@@ -55,7 +55,7 @@ class BLEScanner(private val context: Context) {
         override fun onScanFailed(errorCode: Int) {
             super.onScanFailed(errorCode)
             scanning = false
-            Log.e("BLEScanner", "Scan failed with error code: $errorCode")
+            Log.e("BLEService", "Scan failed with error code: $errorCode")
         }
     }
 
@@ -86,43 +86,43 @@ class BLEScanner(private val context: Context) {
 
     fun startScan() {
         if (bluetoothLeScanner == null) {
-            Log.e("BLEScanner", "Bluetooth LE scanner not available")
+            Log.e("BLEService", "Bluetooth LE scanner not available")
             return
         }
         if (scanning) {
-            Log.d("BLEScanner", "Already scanning")
+            Log.d("BLEService", "Already scanning")
             return
         }
         if (!hasPermissions()) {
-            Log.e("BLEScanner", "Missing permissions: ${PermissionUtils.permissions.joinToString()}")
+            Log.e("BLEService", "Missing permissions: ${PermissionUtils.permissions.joinToString()}")
             return
         }
         val adapter = bluetoothAdapter
         if (adapter == null || !adapter.isEnabled) {
-            Log.e("BLEScanner", "Bluetooth is not enabled or unavailable")
+            Log.e("BLEService", "Bluetooth is not enabled or unavailable")
             return
         }
         try {
             scanning = true
             scanResults.clear()
             bluetoothLeScanner.startScan(scanCallback)
-            Log.d("BLEScanner", "Scan started successfully")
+            Log.d("BLEService", "Scan started successfully")
         } catch (e: SecurityException) {
             scanning = false
-            Log.e("BLEScanner", "SecurityException: ${e.message}")
+            Log.e("BLEService", "SecurityException: ${e.message}")
         }
     }
 
     fun sendNavigationData(etaData: String, directionData: String) {
         val gatt = bluetoothGatt ?: return
         if (!hasPermissions()) {
-            Log.e("BLEScanner", "Missing permissions for sending navigation data")
+            Log.e("BLEService", "Missing permissions for sending navigation data")
             return
         }
 
         // Get the service
         val service = gatt.getService(serviceUUID) ?: run {
-            Log.e("BLEScanner", "Service $serviceUUID not found")
+            Log.e("BLEService", "Service $serviceUUID not found")
             return
         }
 
@@ -171,7 +171,7 @@ class BLEScanner(private val context: Context) {
 
     fun connectToDevice(device: BluetoothDevice) {
         if (!hasPermissions()) {
-            Log.e("BLEScanner", "Missing permissions for GATT connection")
+            Log.e("BLEService", "Missing permissions for GATT connection")
             return
         }
         try {
@@ -180,12 +180,12 @@ class BLEScanner(private val context: Context) {
                     if (!hasPermissions()) return
                     when (newState) {
                         BluetoothProfile.STATE_CONNECTED -> {
-                            Log.d("BLEScanner", "Connected to ${device.address}")
+                            Log.d("BLEService", "Connected to ${device.address}")
                             gatt.discoverServices()
                             updateConnectionState(device, true)
                         }
                         BluetoothProfile.STATE_DISCONNECTED -> {
-                            Log.d("BLEScanner", "Disconnected from ${device.address}")
+                            Log.d("BLEService", "Disconnected from ${device.address}")
                             updateConnectionState(device, false)
                         }
                     }
@@ -194,15 +194,15 @@ class BLEScanner(private val context: Context) {
                 override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
                     if (!hasPermissions()) return
                     if (status == BluetoothGatt.GATT_SUCCESS) {
-                        Log.d("BLEScanner", "Services discovered: ${gatt.services.size} services")
+                        Log.d("BLEService", "Services discovered: ${gatt.services.size} services")
                         val service = gatt.getService(serviceUUID)
                         if (service != null) {
-                            Log.d("BLEScanner", "Found service with UUID $serviceUUID")
+                            Log.d("BLEService", "Found service with UUID $serviceUUID")
                         } else {
-                            Log.e("BLEScanner", "Service $serviceUUID not found")
+                            Log.e("BLEService", "Service $serviceUUID not found")
                         }
                     } else {
-                        Log.e("BLEScanner", "Service discovery failed: $status")
+                        Log.e("BLEService", "Service discovery failed: $status")
                     }
                 }
 
@@ -210,7 +210,7 @@ class BLEScanner(private val context: Context) {
                     val deviceAddress = gatt.device.address
                     val charUUID = characteristic.uuid
                     if (status == BluetoothGatt.GATT_SUCCESS) {
-                        Log.d("BLEScanner", "Write successful to ${characteristic.uuid}")
+                        Log.d("BLEService", "Write successful to ${characteristic.uuid}")
                         val pendingWrite = pendingWrites[deviceAddress + charUUID.toString()]
 
                         if (pendingWrite != null) {
@@ -218,28 +218,28 @@ class BLEScanner(private val context: Context) {
                             writeChunks(gatt, characteristic, data, maxChunkSize, offset)
                         }
                     } else {
-                        Log.e("BLEScanner", "Write failed: $status")
+                        Log.e("BLEService", "Write failed: $status")
                         pendingWrites.remove(deviceAddress + charUUID.toString())
                     }
                 }
             })
         } catch (e: SecurityException) {
-            Log.e("BLEScanner", "SecurityException in connectGatt: ${e.message}")
+            Log.e("BLEService", "SecurityException in connectGatt: ${e.message}")
         }
     }
 
     private fun sendDataToCharacteristic(gatt: BluetoothGatt, service: BluetoothGattService, uuid: UUID, data: String) {
         val characteristic = service.getCharacteristic(uuid)
         if (characteristic == null) {
-            Log.e("BLEScanner", "Characteristic $uuid not found")
+            Log.e("BLEService", "Characteristic $uuid not found")
             return
         }
         if (!hasPermissions()) {
-            Log.e("BLEScanner", "Missing permissions for data send")
+            Log.e("BLEService", "Missing permissions for data send")
             return
         }
         if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
-            Log.e("BLEScanner", "Characteristic $uuid does not support write")
+            Log.e("BLEService", "Characteristic $uuid does not support write")
             return
         }
 
@@ -249,28 +249,28 @@ class BLEScanner(private val context: Context) {
         try {
             writeChunks(gatt, characteristic, byteData, maxChunkSize, 0)
         } catch (e: SecurityException) {
-            Log.e("BLEScanner", "SecurityException in sendData: ${e.message}")
+            Log.e("BLEService", "SecurityException in sendData: ${e.message}")
         }
     }
 
     fun stopScan() {
         if (bluetoothLeScanner == null || !scanning) {
-            Log.d("BLEScanner", "No scan to stop")
+            Log.d("BLEService", "No scan to stop")
             return
         }
         try {
             scanning = false
             bluetoothLeScanner.stopScan(scanCallback)
-            Log.d("BLEScanner", "Scan stopped")
+            Log.d("BLEService", "Scan stopped")
         } catch (e: SecurityException) {
-            Log.e("BLEScanner", "SecurityException in stopScan: ${e.message}")
+            Log.e("BLEService", "SecurityException in stopScan: ${e.message}")
         }
     }
 
     fun disconnect(device: BluetoothDevice) {
         bluetoothGatt?.let { gatt ->
             if (!hasPermissions()) {
-                Log.e("BLEScanner", "Missing permissions to disconnect")
+                Log.e("BLEService", "Missing permissions to disconnect")
                 bluetoothGatt = null
                 return
             }
@@ -279,9 +279,9 @@ class BLEScanner(private val context: Context) {
                 gatt.close()
                 bluetoothGatt = null
                 updateConnectionState(device, false)
-                Log.d("BLEScanner", "GATT disconnected and closed")
+                Log.d("BLEService", "GATT disconnected and closed")
             } catch (e: SecurityException) {
-                Log.e("BLEScanner", "SecurityException during disconnect: ${e.message}")
+                Log.e("BLEService", "SecurityException during disconnect: ${e.message}")
                 bluetoothGatt = null
             }
         }
@@ -294,7 +294,7 @@ class BLEScanner(private val context: Context) {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
-            Log.w("BLEScanner", "Missing permissions: ${missing.joinToString()}")
+            Log.w("BLEService", "Missing permissions: ${missing.joinToString()}")
         }
         return missing.isEmpty()
     }
