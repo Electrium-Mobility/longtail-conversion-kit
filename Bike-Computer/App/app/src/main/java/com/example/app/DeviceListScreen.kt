@@ -127,7 +127,7 @@ fun DeviceItem(device: BluetoothDevice, bleScanner: BLEScanner) {
                 bleScanner.connectToDevice(device)
             }
             else {
-                bleScanner.disconnect()
+                bleScanner.disconnect(device)
             }
                   },
         modifier = Modifier
@@ -145,6 +145,7 @@ fun DeviceItem(device: BluetoothDevice, bleScanner: BLEScanner) {
             )
             Text(
                 text = if (isConnected) "Connected" else "Disconnected",
+                color = if (isConnected) Color(ContextCompat.getColor(LocalContext.current, R.color.green_main)) else Color.White,
                 fontSize = 16.sp
             )
         }

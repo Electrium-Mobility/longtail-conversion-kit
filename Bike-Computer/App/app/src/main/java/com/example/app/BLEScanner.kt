@@ -1,6 +1,7 @@
 package com.example.app
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
@@ -34,6 +35,9 @@ class BLEScanner(private val context: Context) {
 
     //Map each BLE device to it's connection status
     private val connectionStates = mutableMapOf<String, MutableStateFlow<Boolean>>()
+
+    //Queued BLE writes (since they are sent in chunks)
+    private val pendingWrites = mutableMapOf<String, Triple<ByteArray, Int, Int>>()
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -109,6 +113,44 @@ class BLEScanner(private val context: Context) {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun writeChunks(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, data: ByteArray, maxChunkSize: Int, offset: Int) {
+        if (offset >= data.size) {
+            val terminator = "$".toByteArray()
+            characteristic.setValue(terminator)
+            gatt.writeCharacteristic(characteristic)
+            Log.d("BLE Scanner", "Terminator sent")
+
+            //Clear queued writes
+            val deviceAddress = gatt.device.address
+            val charUUID = characteristic.uuid
+            pendingWrites.remove(deviceAddress + charUUID.toString())
+            return
+        }
+
+        //Calculate chunk size
+        val remainingBytes = data.size - offset
+        val chunkSize = minOf(remainingBytes, maxChunkSize)
+
+        //Copy data into chunk
+        val chunk = ByteArray(chunkSize)
+        System.arraycopy(data, offset, chunk, 0, chunkSize)
+
+        //Write chunk to characteristic
+        characteristic.setValue(chunk)
+        val success = gatt.writeCharacteristic(characteristic)
+
+        if (success) {
+            Log.d("BLE Scanner", "Chunk write initiated: ${String(chunk)} (${chunk.size} bytes), offset: $offset")
+            val deviceAddress = gatt.device.address
+            val charUUID = characteristic.uuid
+            pendingWrites[deviceAddress + charUUID.toString()] = Triple(data, maxChunkSize, offset + chunkSize)
+        }
+        else {
+            Log.e("BLE Scanner", "Failed to initiate chunk write at offset ${offset}")
+        }
+    }
+
     fun connectToDevice(device: BluetoothDevice) {
         if (!hasPermissions()) {
             Log.e("BLEScanner", "Missing permissions for GATT connection")
@@ -152,11 +194,20 @@ class BLEScanner(private val context: Context) {
                     }
                 }
 
-                override fun onCharacteristicWrite(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+                override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                    val deviceAddress = gatt.device.address
+                    val charUUID = characteristic.uuid
                     if (status == BluetoothGatt.GATT_SUCCESS) {
-                        Log.d("BLEScanner", "Write successful to ${characteristic?.uuid}")
+                        Log.d("BLEScanner", "Write successful to ${characteristic.uuid}")
+                        val pendingWrite = pendingWrites[deviceAddress + charUUID.toString()]
+
+                        if (pendingWrite != null) {
+                            val (data, maxChunkSize, offset) = pendingWrite
+                            writeChunks(gatt, characteristic, data, maxChunkSize, offset)
+                        }
                     } else {
                         Log.e("BLEScanner", "Write failed: $status")
+                        pendingWrites.remove(deviceAddress + charUUID.toString())
                     }
                 }
             })
@@ -181,36 +232,12 @@ class BLEScanner(private val context: Context) {
         }
 
         val maxChunkSize = 20 - 1
-        val dataWithDelimiter = "$data$"
-        val byteData = dataWithDelimiter.toByteArray()
+        val byteData = data.toByteArray()
 
         try {
-            if (byteData.size <= maxChunkSize) {
-                characteristic.setValue(byteData)
-                val success = gatt.writeCharacteristic(characteristic)
-                Log.d("BLEScanner", "Single write initiated: $dataWithDelimiter (${byteData.size} bytes)")
-            } else {
-                var offset = 0
-                while (offset < byteData.size) {
-                    val chunkSize = minOf(maxChunkSize, byteData.size - offset)
-                    val chunk = ByteArray(chunkSize + 1)
-                    System.arraycopy(byteData, offset, chunk, 0, chunkSize)
-                    chunk[chunkSize] = '$'.code.toByte()
-                    characteristic.setValue(chunk)
-                    val success = gatt.writeCharacteristic(characteristic)
-                    if (!success) {
-                        Log.e("BLEScanner", "Failed to initiate chunk write at offset $offset")
-                        break
-                    }
-                    Log.d("BLEScanner", "Chunk write initiated: ${String(chunk)} (${chunk.size} bytes)")
-                    offset += chunkSize
-                    Thread.sleep(100)
-                }
-            }
+            writeChunks(gatt, characteristic, byteData, maxChunkSize, 0)
         } catch (e: SecurityException) {
             Log.e("BLEScanner", "SecurityException in sendData: ${e.message}")
-        } catch (e: InterruptedException) {
-            Log.e("BLEScanner", "Interrupted during chunked write: ${e.message}")
         }
     }
 
@@ -228,7 +255,7 @@ class BLEScanner(private val context: Context) {
         }
     }
 
-    fun disconnect() {
+    fun disconnect(device: BluetoothDevice) {
         bluetoothGatt?.let { gatt ->
             if (!hasPermissions()) {
                 Log.e("BLEScanner", "Missing permissions to disconnect")
@@ -239,6 +266,7 @@ class BLEScanner(private val context: Context) {
                 gatt.disconnect()
                 gatt.close()
                 bluetoothGatt = null
+                updateConnectionState(device, false)
                 Log.d("BLEScanner", "GATT disconnected and closed")
             } catch (e: SecurityException) {
                 Log.e("BLEScanner", "SecurityException during disconnect: ${e.message}")
