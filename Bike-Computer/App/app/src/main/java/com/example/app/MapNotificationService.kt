@@ -15,46 +15,38 @@ import java.io.File
 
 class MapNotificationService : NotificationListenerService() {
 
-    companion object {
-
-        private const val TAG = "NotificationService"
-        private const val MAPS_PACKAGE = "com.google.android.apps.maps"
-
-        private val _directionDistance = MutableStateFlow<String?>(null)
-        private val _directionText = MutableStateFlow<String?>(null)
-        private val _directionIcon = MutableStateFlow<Bitmap?>(null)
-        private val _etaInDuration = MutableStateFlow<String?>(null)
-        private val _etaInDistance = MutableStateFlow<String?>(null)
-        private val _etaInTime = MutableStateFlow<String?>(null)
-        private val _iconType = MutableStateFlow<String?>(null)
-
-        val directionDistance: StateFlow<String?> = _directionDistance.asStateFlow()
-        val directionText: StateFlow<String?> = _directionText.asStateFlow()
-        val directionIcon: StateFlow<Bitmap?> = _directionIcon.asStateFlow()
-        val etaInDuration: StateFlow<String?> = _etaInDuration.asStateFlow()
-        val etaInDistance: StateFlow<String?> = _etaInDistance.asStateFlow()
-        val etaInTime: StateFlow<String?> = _etaInTime.asStateFlow()
-        val iconType: StateFlow<String?> = _iconType.asStateFlow()
-    }
-
-    private lateinit var bleService: BLEService
-
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "NotificationService created")
-        bleService = BLEService(this)
+        Log.d(NavigationDataManager.TAG, "NotificationService created")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
-        Log.d(TAG, "Notification posted: ${sbn.notification.tickerText}")
-        if (sbn.packageName == MAPS_PACKAGE) {
+
+        if (sbn.packageName == NavigationDataManager.MAPS_PACKAGE) {
+            Log.d(NavigationDataManager.TAG, "Notification posted: ${sbn.notification.tickerText}")
             val notification = sbn.notification
-            _directionDistance.value = notification.extras.getCharSequence("android.title").toString()
-            _directionText.value = notification.extras.getCharSequence("android.text").toString()
+
+            //Update nav direction info
+            val directionDistance = notification.extras.getCharSequence("android.title")?.toString()
+            if (directionDistance == "Starting navigation...") {
+                return
+            }
+            NavigationDataManager.setDirectionDistance(directionDistance)
+
+            val directionText = notification.extras.getCharSequence("android.text")?.toString()
+            if (directionText == null) {
+                return
+            }
+            NavigationDataManager.setDirectionText(directionText)
+
             val icon = notification.getLargeIcon().loadDrawable(this)?.toBitmap()
-            Log.d(TAG, "Notification icon: $icon")
-            _directionIcon.value = icon
+            if (icon == null) {
+                return
+            }
+            NavigationDataManager.setDirectionIcon(icon)
+
+            Log.d(NavigationDataManager.TAG, "Notification icon: $icon")
             if (icon != null) {
                 val iconScaled40 = Bitmap.createScaledBitmap(icon, 40, 40, false)
 
@@ -73,30 +65,21 @@ class MapNotificationService : NotificationListenerService() {
                 }
                 BitmapSaver.saveBitmapToExternalStorage(this, iconScaled40)
                 val iconType = identifyDirection(pixels)
-                _iconType.value = iconType
+                NavigationDataManager.setIconType(iconType)
             }
 
-            val etaInfo = notification.extras.getCharSequence("android.subText").toString().split("·")
-            _etaInDuration.value = etaInfo[0].trim()
-            _etaInDistance.value = etaInfo[1].trim()
-            _etaInTime.value = etaInfo[2].trim().split(" ").subList(0, 2).joinToString(" ")
+            //Update nav eta info
+            val subText = notification.extras.getCharSequence("android.subText")?.toString()
+            if (!subText.isNullOrEmpty()) {
+                val etaInfo = subText.split("·")
+                if (etaInfo.size >= 3) {
+                    NavigationDataManager.setEtaInDuration(etaInfo[0].trim())
+                    NavigationDataManager.setEtaInDistance(etaInfo[1].trim())
+                    NavigationDataManager.setEtaInTime(etaInfo[2].trim().split(" ").take(2).joinToString(" "))
+                }
+            }
         }
 
-    }
-
-    private fun sendNavigationData() {
-        // Check if we have the data we need
-        val bitmap = _iconType.value ?: return
-        val directionInstruction = _directionText.value ?: return
-        val distanceToNextDirection = _directionDistance.value ?: return
-        val etaRelative = _etaInDuration.value ?: return
-        val etaDistance = _etaInDistance.value ?: return
-        val etaAbsolute = _etaInTime.value ?: return
-
-        val directionData = "$bitmap,$directionInstruction,$distanceToNextDirection"
-        val etaData = "$etaRelative,$etaDistance,$etaAbsolute"
-
-        bleService.sendNavigationData(etaData, directionData)
     }
 
     private fun identifyDirection(pxArray: IntArray): String {
@@ -141,14 +124,14 @@ class MapNotificationService : NotificationListenerService() {
             if (pxArray[i-1] != 0) matchAccuracy += 1
         }
         Log.d("Left", matchAccuracy.toString())
-        if (matchAccuracy > left.size / 2) return "LEFT"
+        if (matchAccuracy > left.size / 2) return "TURN_LEFT"
 
         matchAccuracy = 0
         for (i in right) {
             if (pxArray[i-1] != 0) matchAccuracy += 1
         }
         Log.d("Right", matchAccuracy.toString())
-        if (matchAccuracy > right.size / 2) return "RIGHT"
+        if (matchAccuracy > right.size / 2) return "TURN_RIGHT"
 
         matchAccuracy = 0
         for (i in straight) {
@@ -162,17 +145,17 @@ class MapNotificationService : NotificationListenerService() {
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         super.onNotificationRemoved(sbn)
-        Log.d(TAG, "Notification removed: ${sbn.notification.tickerText}")
+        Log.d(NavigationDataManager.TAG, "Notification removed: ${sbn.notification.tickerText}")
     }
 
     override fun onBind(intent: Intent?): IBinder? {
-        Log.d(TAG, "NotificationService onBind")
+        Log.d(NavigationDataManager.TAG, "NotificationService onBind")
         return super.onBind(intent)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(TAG, "NotificationService destroyed")
+        Log.d(NavigationDataManager.TAG, "NotificationService destroyed")
     }
 
 

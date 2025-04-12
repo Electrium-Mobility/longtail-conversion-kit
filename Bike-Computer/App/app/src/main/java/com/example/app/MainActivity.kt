@@ -105,7 +105,7 @@ class MainActivity : ComponentActivity() {
             })
         }
         lifecycleScope.launch {
-            MapNotificationService.directionIcon.collect { bitmap ->
+            NavigationDataManager.directionIcon.collect { bitmap ->
                 if (bitmap != null) {
                     BitmapSaver.saveBitmapToExternalStorage(this@MainActivity, bitmap)
                 }

@@ -16,8 +16,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 class BLEService(private val context: Context) {
@@ -38,6 +42,11 @@ class BLEService(private val context: Context) {
 
     //Queued BLE writes (since they are sent in chunks)
     private val pendingWrites = mutableMapOf<String, Triple<ByteArray, Int, Int>>()
+
+    //Queue pending characteristic writes, so both characteristics can be written to
+    private val pendingCharacteristicData = mutableMapOf<String, String>()
+
+    private var navigationUpdateJob: Job? = null
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
@@ -113,22 +122,31 @@ class BLEService(private val context: Context) {
         }
     }
 
-    fun sendNavigationData(etaData: String, directionData: String) {
-        val gatt = bluetoothGatt ?: return
-        if (!hasPermissions()) {
-            Log.e("BLEService", "Missing permissions for sending navigation data")
+    fun sendNavigationData(gatt: BluetoothGatt, service: BluetoothGattService) {
+        Log.d("SEND_NAV", "Sending Navigation data")
+        val iconType = NavigationDataManager.iconType.value
+        val directionText = NavigationDataManager.directionText.value
+        val directionDistance = NavigationDataManager.directionDistance.value
+        val etaDuration = NavigationDataManager.etaInDuration.value
+        val etaDistance = NavigationDataManager.etaInDistance.value
+        val etaTime = NavigationDataManager.etaInTime.value
+
+        Log.d("SEND_NAV", "iconType: $iconType, directionText: $directionText, directionDistance: $directionDistance, etaDuration: $etaDuration, etaDistance: $etaDistance, etaTime: $etaTime")
+
+        if (iconType == null || directionText == null || directionDistance == null ||
+            etaDuration == null || etaDistance == null || etaTime == null) {
             return
         }
 
-        // Get the service
-        val service = gatt.getService(serviceUUID) ?: run {
-            Log.e("BLEService", "Service $serviceUUID not found")
-            return
-        }
+        val directionData = "$iconType,$directionText,$directionDistance"
+        val etaData = "$etaDuration,$etaDistance,$etaTime"
+
+        pendingCharacteristicData["eta"] = etaData
+        pendingCharacteristicData["direction"] = directionData
 
         // Send data to each characteristic
+        // This function call will send to direction once its done
         sendDataToCharacteristic(gatt, service, etaUUID, etaData)
-        sendDataToCharacteristic(gatt, service, directionUUID, directionData)
     }
 
     @SuppressLint("MissingPermission")
@@ -187,6 +205,8 @@ class BLEService(private val context: Context) {
                         BluetoothProfile.STATE_DISCONNECTED -> {
                             Log.d("BLEService", "Disconnected from ${device.address}")
                             updateConnectionState(device, false)
+                            navigationUpdateJob?.cancel()
+                            navigationUpdateJob = null
                         }
                     }
                 }
@@ -217,12 +237,40 @@ class BLEService(private val context: Context) {
                             val (data, maxChunkSize, offset) = pendingWrite
                             writeChunks(gatt, characteristic, data, maxChunkSize, offset)
                         }
+                        else {
+                            //Finished writing ETA, time to write direction
+                            if (characteristic.uuid == etaUUID && pendingCharacteristicData.containsKey("direction")) {
+                                Log.d("BLEService", "ETA write complete, now sending direction data")
+                                val service = gatt.getService(serviceUUID)
+                                if (service != null) {
+                                    val directionData = pendingCharacteristicData["direction"]
+                                    if (directionData != null) {
+                                        sendDataToCharacteristic(gatt, service, directionUUID, directionData)
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         Log.e("BLEService", "Write failed: $status")
                         pendingWrites.remove(deviceAddress + charUUID.toString())
                     }
                 }
             })
+
+            Log.d("SEND_NAV", "Initializing navigationUpdateJob")
+            //Monitor navigation data updates and send to BLE when changed
+            navigationUpdateJob = CoroutineScope(Dispatchers.IO).launch {
+                NavigationDataManager.navigationDataChanged
+                    .collect({ update ->
+                    bluetoothGatt?.let { gatt ->
+                        Log.d("SEND_NAV", "Service UUID: $serviceUUID")
+                        val service = gatt.getService(serviceUUID)
+                        if (service != null) {
+                            sendNavigationData(gatt, service)
+                        }
+                    }
+                })
+            }
         } catch (e: SecurityException) {
             Log.e("BLEService", "SecurityException in connectGatt: ${e.message}")
         }
@@ -279,6 +327,8 @@ class BLEService(private val context: Context) {
                 gatt.close()
                 bluetoothGatt = null
                 updateConnectionState(device, false)
+                navigationUpdateJob?.cancel()
+                navigationUpdateJob = null
                 Log.d("BLEService", "GATT disconnected and closed")
             } catch (e: SecurityException) {
                 Log.e("BLEService", "SecurityException during disconnect: ${e.message}")

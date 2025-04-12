@@ -58,13 +58,13 @@ fun DisplayNotificationsScreen(
 
 @Composable
 private fun DirectionsDisplay() {
-    val directionDistance by MapNotificationService.directionDistance.collectAsState()
-    val directionText by MapNotificationService.directionText.collectAsState()
-    val directionIcon by MapNotificationService.directionIcon.collectAsState()
-    val etaInDuration by MapNotificationService.etaInDuration.collectAsState()
-    val etaInDistance by MapNotificationService.etaInDistance.collectAsState()
-    val etaInTime by MapNotificationService.etaInTime.collectAsState()
-    val iconType by MapNotificationService.iconType.collectAsState()
+    val directionDistance by NavigationDataManager.directionDistance.collectAsState()
+    val directionText by NavigationDataManager.directionText.collectAsState()
+    val directionIcon by NavigationDataManager.directionIcon.collectAsState()
+    val etaInDuration by NavigationDataManager.etaInDuration.collectAsState()
+    val etaInDistance by NavigationDataManager.etaInDistance.collectAsState()
+    val etaInTime by NavigationDataManager.etaInTime.collectAsState()
+    val iconType by NavigationDataManager.iconType.collectAsState()
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 30.dp, vertical = 50.dp),
@@ -170,7 +170,7 @@ private fun Header(navController: NavController) {
                 color = Color.White,
                 fontSize = 28.sp,
                 modifier = Modifier
-                    .padding(start = 45.dp, top = 30.dp)
+                    .padding(start = 30.dp, top = 30.dp)
             )
         }
     }

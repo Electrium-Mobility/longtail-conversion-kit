@@ -84,7 +84,7 @@ private fun Header(navController: NavController) {
                 )
             }
             Text(
-                text = "Recently Paired Devices",
+                text = "Recently Paired",
                 color = Color.White,
                 fontSize = 28.sp,
                 modifier = Modifier
