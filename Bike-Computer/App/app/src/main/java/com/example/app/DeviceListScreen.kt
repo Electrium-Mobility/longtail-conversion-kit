@@ -108,13 +108,16 @@ private fun Header(navController: NavController) {
                 modifier = Modifier.size(34.dp)
             )
         }
-            Text(
-                text = "Connected Devices",
-                color = Color.White,
-                fontSize = 28.sp,
-                modifier = Modifier
-                    .padding(start = 20.dp, top = 30.dp)
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(top = 30.dp, end = 15.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Connected Devices",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                )
+            }
     }
 }
 }
