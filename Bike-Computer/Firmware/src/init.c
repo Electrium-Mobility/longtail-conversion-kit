@@ -20,5 +20,6 @@ void initialize() {
     initArduino();
     init_display();
     initBLE();
+    initUart();
     vTaskDelete(NULL);
 }

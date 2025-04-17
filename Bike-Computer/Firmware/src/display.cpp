@@ -105,10 +105,11 @@ void display_to_screen()
                 direction.updated = false;
             }
             gfx->fillScreen(BG_COLOR);
-            displayLargeTextMeasurement("SPEED", i * M_PI * WHEEL_DIAMETER * 60 / 1000, true, 10, 10);
+            
+            displayLargeTextMeasurement("SPEED", speed, true, 10, 10);
             displayLargeTextMeasurement("RPM", i, false, 270, 10);
             displaySmallTextMeasurement("PAS", (i + 1) / 3, true, 10, 130);
-            displaySmallTextMeasurement("ELEVATION", i * 100, false, 270, 130);
+            displaySmallTextMeasurement("ELEVATION", elevation, false, 270, 130);
 
             displayMapsDirection();
             gfx->flush();
@@ -131,6 +132,7 @@ void displayLargeTextMeasurement(const char *title, uint16_t value, bool isSpeed
     if (value == UINT16_MAX)
     {
         snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
+        pixelsForNumber = 50;
     }
     else
     {
@@ -177,6 +179,7 @@ void displaySmallTextMeasurement(const char *title, uint16_t value, bool isSpeed
     if (value == UINT16_MAX)
     {
         snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
+        pixelsForNumber = 25;
     }
     else
     {
