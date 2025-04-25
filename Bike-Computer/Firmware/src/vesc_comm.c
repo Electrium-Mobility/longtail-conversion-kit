@@ -42,12 +42,19 @@ void fetchVesc() {
     ESP_LOGI(VESC_COMM_TAG, "Waiting for initialization");
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     ESP_LOGI(VESC_COMM_TAG, "Initialization complete");
+    
+    setCurrent(&data, 5.0);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    setCurrent(&data, 0.0);
 
     while (1) {
         getVescValues(&data);
         ESP_LOGI(VESC_COMM_TAG, "Input voltage: %.2f, RPM: %.2f", data.inpVoltage, data.rpm);
         rpm = (int)(data.rpm / NUM_POLE_PAIRS);
+        if (rpm < 0) {
+            rpm *= -1;
+        }
         speed = (int)((rpm * WHEEL_CIRCUMFERENCE * 60) / 1000.0);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }

@@ -25,13 +25,7 @@ SemaphoreHandle_t initMutex;
 
 extern "C" void init_display()
 {
-
-    strcpy(etaRelative, "15 min");
-    strcpy(etaDistance, "7km");
-    strcpy(etaAbsolute, "10:04PM");
-    strcpy(bitmap, "STRAIGHT");
-    strcpy(directionInstruction, "Markham road");
-    strcpy(distanceToNextDirection, "500m");
+    strcpy(directionInstruction, "This is an example direction");
     // Configure display
     Arduino_DataBus *bus = new Arduino_ESP32QSPI(PIN_LCD_CS, PIN_LCD_SCLK, PIN_LCD_MOSI, PIN_LCD_MISO, PIN_LCD_QUADWP, PIN_LCD_QUADHD);
     Arduino_GFX *g = new Arduino_NV3041A(bus, GFX_NOT_DEFINED, 0, true);
@@ -277,7 +271,12 @@ void displayMapsDirection()
         gfx->println(directionInstruction);
 
         char etaMessage[382];
-        sprintf(etaMessage, "ETA: %s - %s - %s", etaRelative, etaAbsolute, etaDistance);
+        if (strcmp(etaRelative, "") == 0 && strcmp(etaAbsolute, "") == 0 && strcmp(etaDistance, "") == 0) {
+            sprintf(etaMessage, "Open Google Maps and start navigating!");
+        }
+        else {
+            sprintf(etaMessage, "ETA: %s - %s - %s", etaRelative, etaAbsolute, etaDistance);
+        }
         // Display ETA
         gfx->setCursor(100, 265);
         gfx->setFont(&FreeSans10pt7b);
