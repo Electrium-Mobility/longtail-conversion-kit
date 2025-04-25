@@ -8,8 +8,6 @@
 #include "VescUart.h"
 #include "telemetry.h"
 
-int rpm;
-int speed;
 int elevation = 335; //Waterloo elevation
 
 dataPackage *vescData;
@@ -27,20 +25,6 @@ void initUart() {
 	ESP_ERROR_CHECK(uart_param_config(GPS_UART_NUM, &gps_uart_config));
 	ESP_ERROR_CHECK(uart_set_pin(GPS_UART_NUM, 17, 18, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 	ESP_ERROR_CHECK(uart_driver_install(GPS_UART_NUM, GPS_BUFFER_SIZE, 0, 0, NULL, 0));
-
-	// //Set up VESC UART (UART2)
-	// uart_config_t vesc_uart_config = {
-	// 	.baud_rate = 115200,
-	// 	.data_bits = UART_DATA_8_BITS,
-	// 	.parity = UART_PARITY_DISABLE,
-	// 	.stop_bits = UART_STOP_BITS_1,
-	// 	.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-	// 	.rx_flow_ctrl_thresh = 122,
-	// };
-
-	// ESP_ERROR_CHECK(uart_param_config(VESC_UART_NUM, &vesc_uart_config));
-	// ESP_ERROR_CHECK(uart_set_pin(VESC_UART_NUM, 0, 1, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-	// ESP_ERROR_CHECK(uart_driver_install(VESC_UART_NUM, 256, 256, 0, NULL, 0));
 
 	if (telemetryUartComm != NULL) {
         xTaskNotifyGive(telemetryUartComm);
@@ -115,18 +99,15 @@ void parseNMEA(const char *subfield, float *attribute, int index) {
     }
 }
 
-void readElevationAndSpeed(const char *buf) {
-	//Temp variables to assign to global elevation/speed
+void readElevation(const char *buf) {
+	//Temp variables to assign to global elevation
 	float altitude;
-	float velocity;
 
     //Assign pointers to the lines we want to extract from
     const char *gpgga = strstr(buf, "$GPGGA");
-    const char *gpvtg = strstr(buf, "$GPVTG");
 
 	//Copy NMEA values to temp variables
     parseNMEA(gpgga, &altitude, 10);
-    parseNMEA(gpvtg, &velocity, 8);
 
 	//Assign to global variables
 	if (isinf((double)altitude)) {
@@ -135,16 +116,10 @@ void readElevationAndSpeed(const char *buf) {
 	else {
 		elevation = (int)altitude;
 	}
-	if (isinf((double)velocity)) {
-		speed = UINT16_MAX;
-	}
-	else {
-		speed = (int)velocity;
-	}
 }
 
 void fetchValues() {
-	    //Wait as long as necessary for initialization to complete
+	//Wait as long as necessary for initialization to complete
 	ESP_LOGI(TELEMETRY_TAG, "Waiting for initialization");
 	ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 	ESP_LOGI(TELEMETRY_TAG, "Initialization complete");
@@ -152,12 +127,9 @@ void fetchValues() {
 	static char buf[GPS_BUFFER_SIZE]; 
     while (1) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
-		//Fetch VESC values and update rpm
-        // getVescValues(vescData);
-        // rpm = vescData->rpm;
 
 		//Fetch GPS values and update elevation and speed
 		rawReadings(buf);
-		readElevationAndSpeed(buf);
+		readElevation(buf);
     }
 }

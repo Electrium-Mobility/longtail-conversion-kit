@@ -13,6 +13,7 @@
 #include "display.h"
 #include "ble.h"
 #include "telemetry.h"
+#include "vesc_comm.h"
 
 #include "init.h"
 
@@ -21,5 +22,6 @@ void initialize() {
     init_display();
     initBLE();
     initUart();
+    initCAN();
     vTaskDelete(NULL);
 }

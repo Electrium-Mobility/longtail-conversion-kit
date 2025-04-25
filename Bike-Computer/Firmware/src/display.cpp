@@ -107,7 +107,7 @@ void display_to_screen()
             gfx->fillScreen(BG_COLOR);
             
             displayLargeTextMeasurement("SPEED", speed, true, 10, 10);
-            displayLargeTextMeasurement("RPM", i, false, 270, 10);
+            displayLargeTextMeasurement("RPM", rpm, false, 270, 10);
             displaySmallTextMeasurement("PAS", (i + 1) / 3, true, 10, 130);
             displaySmallTextMeasurement("ELEVATION", elevation, false, 270, 130);
 
@@ -129,15 +129,8 @@ void displayLargeTextMeasurement(const char *title, uint16_t value, bool isSpeed
     }
 
     char valueBuffer[4];
-    if (value == UINT16_MAX)
-    {
-        snprintf(valueBuffer, 4 * sizeof(uint16_t), "-");
-        pixelsForNumber = 50;
-    }
-    else
-    {
-        snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
-    }
+    
+    snprintf(valueBuffer, 4 * sizeof(uint16_t), "%u", value);
 
     gfx->setTextColor(BLACK);
 

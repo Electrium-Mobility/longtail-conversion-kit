@@ -12,7 +12,7 @@ extern TaskHandle_t telemetryUartComm;
 void initUart();
 void rawReadings(char* buf);
 void parseNMEA(const char *subfield, float *attribute, int index);
-void readElevationAndSpeed(const char *buf);
+void readElevation(const char *buf);
 void fetchValues();
 
 #endif
