@@ -39,7 +39,7 @@ bool receiveMessage(uint8_t *controllerId, CAN_PACKET_ID *cmd, uint8_t *data, ui
     *cmd = (CAN_PACKET_ID)(message.identifier >> 8) & 0xFF;
     *controllerId = (message.identifier & 0xFF);
 
-    ESP_LOGI(VESC_CAN_TAG, "Controller ID: %d, Command: %d", *controllerId, *cmd);
+    //ESP_LOGI(VESC_CAN_TAG, "Controller ID: %d, Command: %d", *controllerId, *cmd);
 
     *len = message.data_length_code;
     memcpy(data, message.data, *len);
@@ -52,7 +52,7 @@ bool getVescValues(dataPackage* data) {
 }
 
 bool getVescValuesCAN(dataPackage *data, uint8_t canId) {
-    ESP_LOGI(VESC_CAN_TAG, "Getting VESC values");
+    //ESP_LOGI(VESC_CAN_TAG, "Getting VESC values");
 
     uint8_t controllerId;
     CAN_PACKET_ID cmd;
@@ -72,21 +72,21 @@ bool getVescValuesCAN(dataPackage *data, uint8_t canId) {
                         data->rpm = (float)buffer_get_int32(rx_data, &index);
                         data->avgMotorCurrent = (float)buffer_get_int16(rx_data, &index) / 10.0;
                         data->dutyCycleNow = (float)buffer_get_int16(rx_data, &index) / 1000.0;
-                        ESP_LOGI(VESC_CAN_TAG, "Retrieved data - RPM: %.2f, Avg motor current: %.2f, Duty cycle now: %.2f", data->rpm, data->avgMotorCurrent, data->dutyCycleNow);
+                        //ESP_LOGI(VESC_CAN_TAG, "Retrieved data - RPM: %.2f, Avg motor current: %.2f, Duty cycle now: %.2f", data->rpm, data->avgMotorCurrent, data->dutyCycleNow);
                         received_frames++;
                         break;
                     
                     case CAN_PACKET_STATUS_2:
                         data->ampHours = (float)buffer_get_int32(rx_data, &index) / 10000.0;
                         data->ampHoursCharged = (float)buffer_get_int32(rx_data, &index) / 10000.0;
-                        ESP_LOGI(VESC_CAN_TAG, "Retrieved data - Amp hours: %.2f, Amp hours charged: %.2f", data->ampHours, data->ampHoursCharged);
+                        //ESP_LOGI(VESC_CAN_TAG, "Retrieved data - Amp hours: %.2f, Amp hours charged: %.2f", data->ampHours, data->ampHoursCharged);
                         received_frames++;
                         break;
                     
                     case CAN_PACKET_STATUS_3:
                         data->wattHours = (float)buffer_get_int32(rx_data, &index) / 10000.0;
                         data->wattHoursCharged = (float)buffer_get_int32(rx_data, &index) / 10000.0;
-                        ESP_LOGI(VESC_CAN_TAG, "Retrieved data - Watt hours: %.2f, Watt hours charged: %.2f", data->wattHours, data->wattHoursCharged);
+                        //ESP_LOGI(VESC_CAN_TAG, "Retrieved data - Watt hours: %.2f, Watt hours charged: %.2f", data->wattHours, data->wattHoursCharged);
                         received_frames++;
                         break;
                     
@@ -95,7 +95,7 @@ bool getVescValuesCAN(dataPackage *data, uint8_t canId) {
                         data->tempMotor = (float)buffer_get_int16(rx_data, &index) / 10.0;
                         data->inpVoltage = (float)buffer_get_int16(rx_data, &index) / 10.0;
                         data->error = rx_data[6];
-                        ESP_LOGI(VESC_CAN_TAG, "Retrieved data - Temp mosfet: %.2f, Temp motor: %.2f, Input voltage: %.2f", data->tempMosfet, data->tempMotor, data->inpVoltage);
+                        //ESP_LOGI(VESC_CAN_TAG, "Retrieved data - Temp mosfet: %.2f, Temp motor: %.2f, Input voltage: %.2f", data->tempMosfet, data->tempMotor, data->inpVoltage);
                         received_frames++;
                         break;
                     

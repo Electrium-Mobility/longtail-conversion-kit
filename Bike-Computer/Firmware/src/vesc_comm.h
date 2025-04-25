@@ -10,7 +10,7 @@
 #define TWAI_TX_PIN GPIO_NUM_17
 #define TWAI_RX_PIN GPIO_NUM_18
 
-#define NUM_POLE_PAIRS 7.0 //14 poles
+#define NUM_POLE_PAIRS 21.0
 #define WHEEL_CIRCUMFERENCE 1.925 //meters
 
 extern TaskHandle_t vescComm;

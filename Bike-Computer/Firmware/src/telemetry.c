@@ -5,12 +5,9 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "VescUart.h"
 #include "telemetry.h"
 
 int elevation = 335; //Waterloo elevation
-
-dataPackage *vescData;
 
 void initUart() {
 	//Set up GPS module UART (UART1)
