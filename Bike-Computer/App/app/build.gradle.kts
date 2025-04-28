@@ -10,12 +10,13 @@ android {
 
     defaultConfig {
         applicationId = "com.example.app"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -49,6 +50,13 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    
+    // Bluetooth dependencies
+    implementation("androidx.bluetooth:bluetooth:1.0.0-alpha02")
+//    implementation("androidx.bluetooth:bluetooth-scan:1.0.0-alpha01")
+
+    implementation("com.google.code.gson:gson:2.12.1")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

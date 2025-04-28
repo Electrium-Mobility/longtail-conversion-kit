@@ -10,7 +10,6 @@
             "includePath": [
                 "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/include",
                 "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/src",
-                "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                 "/Users/owner/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",
@@ -247,7 +246,6 @@
                 "path": [
                     "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/include",
                     "/Users/owner/Downloads/longtail-conversion-kit/Bike-Computer/Firmware/src",
-                    "/Users/owner/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/newlib/platform_include",
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include",
                     "/Users/owner/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/esp_additions/freertos",

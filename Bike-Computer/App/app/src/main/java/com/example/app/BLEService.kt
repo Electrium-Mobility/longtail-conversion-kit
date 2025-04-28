@@ -1,0 +1,366 @@
+package com.example.app
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
+import android.bluetooth.le.BluetoothLeScanner
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Log
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import java.util.UUID
+
+class BLEService(private val context: Context) {
+    private val bluetoothManager: BluetoothManager? = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager?
+    private val bluetoothAdapter = bluetoothManager?.adapter
+    private val bluetoothLeScanner: BluetoothLeScanner? = bluetoothAdapter?.bluetoothLeScanner
+    private var scanning = false
+    private val scanResults = mutableListOf<BluetoothDevice>()
+    private var bluetoothGatt: BluetoothGatt? = null
+
+    private val targetMacAddress = "98:3d:ae:e9:2a:aa"
+    private val serviceUUID = UUID.fromString("c8a19548-8efa-4143-87eb-5e85ecefc852")
+    private val etaUUID = UUID.fromString("9af73d89-bc02-4c61-ba43-9d65fa7fc86c")
+    private val directionUUID = UUID.fromString("b2ee98be-98cf-4812-bb29-ea72f544b851")
+
+    //Map each BLE device to it's connection status
+    private val connectionStates = mutableMapOf<String, MutableStateFlow<Boolean>>()
+
+    //Queued BLE writes (since they are sent in chunks)
+    private val pendingWrites = mutableMapOf<String, Triple<ByteArray, Int, Int>>()
+
+    //Queue pending characteristic writes, so both characteristics can be written to
+    private val pendingCharacteristicData = mutableMapOf<String, String>()
+
+    private var navigationUpdateJob: Job? = null
+
+    private val scanCallback = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            super.onScanResult(callbackType, result)
+            val device = result.device
+            Log.d("BLEService", "Scan result: ${device.address}, RSSI: ${result.rssi}")
+            if (device.address.equals(targetMacAddress, ignoreCase = true)) {
+                val deviceName = getDeviceName(device)
+                Log.d("BLEService", "Found target device: $deviceName - ${device.address}")
+                scanResults.add(device)
+                stopScan()
+            }
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            super.onScanFailed(errorCode)
+            scanning = false
+            Log.e("BLEService", "Scan failed with error code: $errorCode")
+        }
+    }
+
+    fun monitorDeviceConnection(device: BluetoothDevice) : Flow<Boolean> {
+        val address = device.address
+        if (!connectionStates.containsKey(address)) {
+            connectionStates[address] = MutableStateFlow(isDeviceConnected((device)))
+        }
+        return connectionStates[address]!!
+    }
+
+    fun updateConnectionState(device: BluetoothDevice, connected: Boolean) {
+        val address = device.address
+        if (!connectionStates.containsKey(address)) {
+            connectionStates[address] = MutableStateFlow(connected)
+        } else {
+            connectionStates[address]!!.value = connected
+        }
+    }
+
+    private fun isDeviceConnected(device: BluetoothDevice): Boolean {
+        return try {
+            bluetoothManager?.getConnectionState(device, BluetoothProfile.GATT) == BluetoothProfile.STATE_CONNECTED
+        } catch (e: SecurityException) {
+            false
+        }
+    }
+
+    fun startScan() {
+        if (bluetoothLeScanner == null) {
+            Log.e("BLEService", "Bluetooth LE scanner not available")
+            return
+        }
+        if (scanning) {
+            Log.d("BLEService", "Already scanning")
+            return
+        }
+        if (!hasPermissions()) {
+            Log.e("BLEService", "Missing permissions: ${PermissionUtils.permissions.joinToString()}")
+            return
+        }
+        val adapter = bluetoothAdapter
+        if (adapter == null || !adapter.isEnabled) {
+            Log.e("BLEService", "Bluetooth is not enabled or unavailable")
+            return
+        }
+        try {
+            scanning = true
+            scanResults.clear()
+            bluetoothLeScanner.startScan(scanCallback)
+            Log.d("BLEService", "Scan started successfully")
+        } catch (e: SecurityException) {
+            scanning = false
+            Log.e("BLEService", "SecurityException: ${e.message}")
+        }
+    }
+
+    fun sendNavigationData(gatt: BluetoothGatt, service: BluetoothGattService) {
+        Log.d("SEND_NAV", "Sending Navigation data")
+        val iconType = NavigationDataManager.iconType.value
+        val directionText = NavigationDataManager.directionText.value
+        val directionDistance = NavigationDataManager.directionDistance.value
+        val etaDuration = NavigationDataManager.etaInDuration.value
+        val etaDistance = NavigationDataManager.etaInDistance.value
+        val etaTime = NavigationDataManager.etaInTime.value
+
+        Log.d("SEND_NAV", "iconType: $iconType, directionText: $directionText, directionDistance: $directionDistance, etaDuration: $etaDuration, etaDistance: $etaDistance, etaTime: $etaTime")
+
+        if (iconType == null || directionText == null || directionDistance == null ||
+            etaDuration == null || etaDistance == null || etaTime == null) {
+            return
+        }
+
+        val directionData = "$iconType,$directionText,$directionDistance"
+        val etaData = "$etaDuration,$etaDistance,$etaTime"
+
+        pendingCharacteristicData["eta"] = etaData
+        pendingCharacteristicData["direction"] = directionData
+
+        // Send data to each characteristic
+        // This function call will send to direction once its done
+        sendDataToCharacteristic(gatt, service, etaUUID, etaData)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun writeChunks(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, data: ByteArray, maxChunkSize: Int, offset: Int) {
+        if (offset >= data.size) {
+            val terminator = "$".toByteArray()
+            characteristic.setValue(terminator)
+            gatt.writeCharacteristic(characteristic)
+            Log.d("BLE Scanner", "Terminator sent")
+
+            //Clear queued writes
+            val deviceAddress = gatt.device.address
+            val charUUID = characteristic.uuid
+            pendingWrites.remove(deviceAddress + charUUID.toString())
+            return
+        }
+
+        //Calculate chunk size
+        val remainingBytes = data.size - offset
+        val chunkSize = minOf(remainingBytes, maxChunkSize)
+
+        //Copy data into chunk
+        val chunk = ByteArray(chunkSize)
+        System.arraycopy(data, offset, chunk, 0, chunkSize)
+
+        //Write chunk to characteristic
+        characteristic.setValue(chunk)
+        val success = gatt.writeCharacteristic(characteristic)
+
+        if (success) {
+            Log.d("BLE Scanner", "Chunk write initiated: ${String(chunk)} (${chunk.size} bytes), offset: $offset")
+            val deviceAddress = gatt.device.address
+            val charUUID = characteristic.uuid
+            pendingWrites[deviceAddress + charUUID.toString()] = Triple(data, maxChunkSize, offset + chunkSize)
+        }
+        else {
+            Log.e("BLE Scanner", "Failed to initiate chunk write at offset ${offset}")
+        }
+    }
+
+    fun connectToDevice(device: BluetoothDevice) {
+        if (!hasPermissions()) {
+            Log.e("BLEService", "Missing permissions for GATT connection")
+            return
+        }
+        try {
+            bluetoothGatt = device.connectGatt(context, false, object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+                    if (!hasPermissions()) return
+                    when (newState) {
+                        BluetoothProfile.STATE_CONNECTED -> {
+                            Log.d("BLEService", "Connected to ${device.address}")
+                            gatt.discoverServices()
+                            updateConnectionState(device, true)
+                        }
+                        BluetoothProfile.STATE_DISCONNECTED -> {
+                            Log.d("BLEService", "Disconnected from ${device.address}")
+                            updateConnectionState(device, false)
+                            navigationUpdateJob?.cancel()
+                            navigationUpdateJob = null
+                        }
+                    }
+                }
+
+                override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+                    if (!hasPermissions()) return
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        Log.d("BLEService", "Services discovered: ${gatt.services.size} services")
+                        val service = gatt.getService(serviceUUID)
+                        if (service != null) {
+                            Log.d("BLEService", "Found service with UUID $serviceUUID")
+                        } else {
+                            Log.e("BLEService", "Service $serviceUUID not found")
+                        }
+                    } else {
+                        Log.e("BLEService", "Service discovery failed: $status")
+                    }
+                }
+
+                override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
+                    val deviceAddress = gatt.device.address
+                    val charUUID = characteristic.uuid
+                    if (status == BluetoothGatt.GATT_SUCCESS) {
+                        Log.d("BLEService", "Write successful to ${characteristic.uuid}")
+                        val pendingWrite = pendingWrites[deviceAddress + charUUID.toString()]
+
+                        if (pendingWrite != null) {
+                            val (data, maxChunkSize, offset) = pendingWrite
+                            writeChunks(gatt, characteristic, data, maxChunkSize, offset)
+                        }
+                        else {
+                            //Finished writing ETA, time to write direction
+                            if (characteristic.uuid == etaUUID && pendingCharacteristicData.containsKey("direction")) {
+                                Log.d("BLEService", "ETA write complete, now sending direction data")
+                                val service = gatt.getService(serviceUUID)
+                                if (service != null) {
+                                    val directionData = pendingCharacteristicData["direction"]
+                                    if (directionData != null) {
+                                        sendDataToCharacteristic(gatt, service, directionUUID, directionData)
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        Log.e("BLEService", "Write failed: $status")
+                        pendingWrites.remove(deviceAddress + charUUID.toString())
+                    }
+                }
+            })
+
+            Log.d("SEND_NAV", "Initializing navigationUpdateJob")
+            //Monitor navigation data updates and send to BLE when changed
+            navigationUpdateJob = CoroutineScope(Dispatchers.IO).launch {
+                NavigationDataManager.navigationDataChanged
+                    .collect({ update ->
+                    bluetoothGatt?.let { gatt ->
+                        Log.d("SEND_NAV", "Service UUID: $serviceUUID")
+                        val service = gatt.getService(serviceUUID)
+                        if (service != null) {
+                            sendNavigationData(gatt, service)
+                        }
+                    }
+                })
+            }
+        } catch (e: SecurityException) {
+            Log.e("BLEService", "SecurityException in connectGatt: ${e.message}")
+        }
+    }
+
+    private fun sendDataToCharacteristic(gatt: BluetoothGatt, service: BluetoothGattService, uuid: UUID, data: String) {
+        val characteristic = service.getCharacteristic(uuid)
+        if (characteristic == null) {
+            Log.e("BLEService", "Characteristic $uuid not found")
+            return
+        }
+        if (!hasPermissions()) {
+            Log.e("BLEService", "Missing permissions for data send")
+            return
+        }
+        if ((characteristic.properties and BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
+            Log.e("BLEService", "Characteristic $uuid does not support write")
+            return
+        }
+
+        val maxChunkSize = 20 - 1
+        val byteData = data.toByteArray()
+
+        try {
+            writeChunks(gatt, characteristic, byteData, maxChunkSize, 0)
+        } catch (e: SecurityException) {
+            Log.e("BLEService", "SecurityException in sendData: ${e.message}")
+        }
+    }
+
+    fun stopScan() {
+        if (bluetoothLeScanner == null || !scanning) {
+            Log.d("BLEService", "No scan to stop")
+            return
+        }
+        try {
+            scanning = false
+            bluetoothLeScanner.stopScan(scanCallback)
+            Log.d("BLEService", "Scan stopped")
+        } catch (e: SecurityException) {
+            Log.e("BLEService", "SecurityException in stopScan: ${e.message}")
+        }
+    }
+
+    fun disconnect(device: BluetoothDevice) {
+        bluetoothGatt?.let { gatt ->
+            if (!hasPermissions()) {
+                Log.e("BLEService", "Missing permissions to disconnect")
+                bluetoothGatt = null
+                return
+            }
+            try {
+                gatt.disconnect()
+                gatt.close()
+                bluetoothGatt = null
+                updateConnectionState(device, false)
+                navigationUpdateJob?.cancel()
+                navigationUpdateJob = null
+                Log.d("BLEService", "GATT disconnected and closed")
+            } catch (e: SecurityException) {
+                Log.e("BLEService", "SecurityException during disconnect: ${e.message}")
+                bluetoothGatt = null
+            }
+        }
+    }
+
+    fun getScanResults(): List<BluetoothDevice> = scanResults.toList()
+
+    private fun hasPermissions(): Boolean {
+        val missing = PermissionUtils.permissions.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isNotEmpty()) {
+            Log.w("BLEService", "Missing permissions: ${missing.joinToString()}")
+        }
+        return missing.isEmpty()
+    }
+
+    private fun getDeviceName(device: BluetoothDevice): String {
+        return if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            device.name ?: "Unnamed (${device.address})"
+        } else {
+            "Permission Denied (${device.address})"
+        }
+    }
+
+    companion object {
+        private const val SCAN_FAILED_ALREADY_STARTED = 1
+        private const val SCAN_FAILED_APPLICATION_REGISTRATION_FAILED = 2
+        private const val SCAN_FAILED_INTERNAL_ERROR = 3
+        private const val SCAN_FAILED_FEATURE_UNSUPPORTED = 4
+    }
+}
